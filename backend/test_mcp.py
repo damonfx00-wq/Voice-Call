@@ -1,5 +1,4 @@
-"""Test script for MCP Server and Agent"""
-import asyncio
+"""Test script for Hotel Booking System"""
 import sys
 import os
 
@@ -7,83 +6,75 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.agents.agent import IntelligentAgent
-from app.tools.csv_tools import CSVTools
-from app.tools.rag_tool import RAGTool
+from app.tools.hotel_tools import HotelTools
 from dotenv import load_dotenv
 
 load_dotenv()
 
 
-def test_csv_tools():
-    """Test CSV tools"""
+def test_hotel_tools():
+    """Test hotel booking tools"""
     print("\n" + "="*60)
-    print("Testing CSV Tools")
+    print("Testing Hotel Booking Tools")
     print("="*60)
     
-    csv_tools = CSVTools(data_dir="./data")
+    hotel_tools = HotelTools(data_dir="./data")
     
-    # Test list files
-    print("\n1. Listing CSV files:")
-    result = csv_tools.list_csv_files()
-    print(f"   Found {result.get('total_files', 0)} files")
-    
-    # Test read
-    print("\n2. Reading employees.csv:")
-    result = csv_tools.read_csv("employees.csv", limit=3)
-    if result["success"]:
-        print(f"   Read {result['rows']} rows")
-        print(f"   Columns: {result['columns']}")
-        print(f"   Sample data: {result['data'][0] if result['data'] else 'No data'}")
-    
-    # Test read with filter
-    print("\n3. Reading with filter (department=Engineering):")
-    result = csv_tools.read_csv(
-        "employees.csv",
-        filters={"department": "Engineering"}
+    # Test search rooms
+    print("\n1. Searching for rooms (2 guests, check-in: 2026-01-10, check-out: 2026-01-12):")
+    result = hotel_tools.search_rooms(
+        check_in="2026-01-10",
+        check_out="2026-01-12",
+        guests=2
     )
     if result["success"]:
-        print(f"   Found {result['rows']} engineering employees")
+        print(f"   Found {result['total_rooms']} available rooms")
+        for room in result['rooms']:
+            print(f"   - {room['room_type']} ({room['room_id']}): ${room['price_per_night']}/night")
+            print(f"     Capacity: {room['capacity']} guests")
+            print(f"     Amenities: {', '.join(room['amenities'])}")
     
-    # Test write
-    print("\n4. Writing new data:")
-    new_data = [
-        {"id": 11, "name": "Test User", "age": 25, "department": "IT", "salary": 55000}
-    ]
-    result = csv_tools.write_csv("test_output.csv", new_data)
-    if result["success"]:
-        print(f"   {result['message']}")
-
-
-def test_rag_tool():
-    """Test RAG tool"""
-    print("\n" + "="*60)
-    print("Testing RAG Tool")
-    print("="*60)
-    
-    rag_tool = RAGTool(
-        documents_dir="./data/documents",
-        vector_db_dir="./data/vector_db"
+    # Test book room
+    print("\n2. Booking a room:")
+    result = hotel_tools.book_room(
+        room_id="R102",
+        guest_name="John Doe",
+        check_in="2026-01-10",
+        check_out="2026-01-12",
+        guests=2,
+        email="john@example.com",
+        phone="+1234567890"
     )
-    
-    # Test ingest
-    print("\n1. Ingesting documents:")
-    result = rag_tool.ingest_documents()
     if result["success"]:
-        print(f"   {result['message']}")
-        print(f"   Chunks created: {result['chunks_created']}")
-    
-    # Test query
-    print("\n2. Querying: 'What are the company values?'")
-    result = rag_tool.query_with_context("What are the company values?", top_k=2)
-    if result["success"]:
-        print(f"   Retrieved {result.get('message', '')}")
-        print(f"   Context preview: {result['context'][:200]}...")
+        print(f"   ✅ {result['message']}")
+        print(f"   Booking ID: {result['booking']['booking_id']}")
+        print(f"   Room: {result['booking']['room_type']}")
+        print(f"   Nights: {result['booking']['nights']}")
+        print(f"   Total Price: ${result['booking']['total_price']}")
+        booking_id = result['booking']['booking_id']
+        
+        # Test get booking
+        print("\n3. Retrieving booking details:")
+        result = hotel_tools.get_booking(booking_id)
+        if result["success"]:
+            print(f"   Guest: {result['booking']['guest_name']}")
+            print(f"   Email: {result['booking']['email']}")
+            print(f"   Room: {result['booking']['room_type']}")
+            print(f"   Check-in: {result['booking']['check_in']}")
+            print(f"   Check-out: {result['booking']['check_out']}")
+            print(f"   Status: {result['booking']['status']}")
+        
+        # Test list bookings
+        print("\n4. Listing all confirmed bookings:")
+        result = hotel_tools.list_all_bookings(status="confirmed")
+        if result["success"]:
+            print(f"   Total confirmed bookings: {result['total_bookings']}")
 
 
 def test_agent():
-    """Test intelligent agent"""
+    """Test intelligent agent with hotel booking"""
     print("\n" + "="*60)
-    print("Testing Intelligent Agent")
+    print("Testing Hotel Booking Agent")
     print("="*60)
     
     # Check if API key is set
@@ -95,39 +86,36 @@ def test_agent():
     
     agent = IntelligentAgent()
     
-    # Test 1: CSV query
-    print("\n1. Agent Test - CSV Query:")
-    print("   User: 'Show me all employees in the Engineering department'")
-    response = agent.chat("Show me all employees in the Engineering department from employees.csv")
-    print(f"   Agent: {response[:200]}...")
+    # Test 1: Search for rooms
+    print("\n1. Agent Test - Room Search:")
+    print("   User: 'I need a hotel room for 2 people from January 15 to January 17, 2026'")
+    response = agent.chat("I need a hotel room for 2 people from January 15 to January 17, 2026")
+    print(f"   Agent: {response}")
     
-    # Test 2: RAG query
-    print("\n2. Agent Test - RAG Query:")
-    print("   User: 'What benefits does the company offer?'")
+    # Test 2: Book a specific room
+    print("\n2. Agent Test - Make Booking:")
+    print("   User: 'Book room R201 for Sarah Johnson from Jan 20 to Jan 22, email sarah@email.com'")
     agent.reset_conversation()
-    response = agent.chat("What benefits does the company offer?")
-    print(f"   Agent: {response[:200]}...")
+    response = agent.chat("Book room R201 for Sarah Johnson, 2 guests, from 2026-01-20 to 2026-01-22, email sarah@email.com, phone +1234567890")
+    print(f"   Agent: {response}")
     
-    # Test 3: Mixed query
-    print("\n3. Agent Test - Mixed Query:")
-    print("   User: 'How many employees work in departments mentioned in the company docs?'")
+    # Test 3: List bookings
+    print("\n3. Agent Test - View Bookings:")
+    print("   User: 'Show me all confirmed bookings'")
     agent.reset_conversation()
-    response = agent.chat("How many employees work in departments mentioned in the company docs?")
-    print(f"   Agent: {response[:200]}...")
+    response = agent.chat("Show me all confirmed bookings")
+    print(f"   Agent: {response}")
 
 
 def main():
     """Run all tests"""
     print("\n" + "="*60)
-    print("MCP Server Test Suite")
+    print("Hotel Booking System - Test Suite")
     print("="*60)
     
     try:
-        # Test CSV tools
-        test_csv_tools()
-        
-        # Test RAG tool
-        test_rag_tool()
+        # Test hotel tools
+        test_hotel_tools()
         
         # Test agent (requires API key)
         test_agent()

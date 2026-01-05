@@ -37,18 +37,69 @@ client = OpenAI(
 # Store active connections
 active_connections: Dict[str, Dict] = {}
 
+import datetime
+
 # Request/Response Models
 class ChatRequest(BaseModel):
     message: str
     stream: bool = False
+    session_id: Optional[str] = None  # Optional session ID to resume conversation
+    user_id: Optional[str] = None  # Optional user identifier
 
 
 class ChatResponse(BaseModel):
     response: str
     success: bool = True
+    session_id: str  # Return session ID for future requests
+
+
+class TranscriptSaveRequest(BaseModel):
+    transcript: List[Dict[str, Any]]
+    duration: str
+    phone_number: Optional[str] = None
+    session_id: Optional[str] = None  # Link transcript to session
+
 
 
 # API Routes
+@app.post("/api/transcript/save")
+async def save_transcript(request: TranscriptSaveRequest):
+    """
+    Save call transcript to a local directory
+    """
+    try:
+        # Create transcripts directory if it doesn't exist
+        transcripts_dir = os.path.join(os.getcwd(), "transcripts")
+        if not os.path.exists(transcripts_dir):
+            os.makedirs(transcripts_dir)
+        
+        # Generate filename with timestamp
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        phone_suffix = f"_{request.phone_number}" if request.phone_number else ""
+        filename = f"transcript_{timestamp}{phone_suffix}.txt"
+        filepath = os.path.join(transcripts_dir, filename)
+        
+        # Format transcript content
+        content = f"Call Transcript - {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+        content += f"Duration: {request.duration}\n"
+        if request.phone_number:
+            content += f"Phone Number: {request.phone_number}\n"
+        content += "-" * 40 + "\n\n"
+        
+        for item in request.transcript:
+            speaker = "You" if item.get("sender") == "user" else "AI Assistant"
+            content += f"[{item.get('timestamp')}] {speaker}: {item.get('text')}\n\n"
+        
+        # Save to file
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write(content)
+            
+        return {"success": True, "message": f"Transcript saved to {filename}", "path": filepath}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/")
 async def root():
     """Root endpoint"""
@@ -69,46 +120,82 @@ async def health():
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     """
-    Chat with the AI assistant (HTTP endpoint for compatibility)
+    Chat with the AI assistant (HTTP endpoint with session management)
     """
     try:
-        # System prompt
-        system_message = {
-            "role": "system",
-            "content": "You are a helpful AI assistant in a voice call. Provide clear, concise, and friendly responses. Keep responses brief and conversational."
-        }
+        from app.agents.agent import IntelligentAgent
         
-        # Prepare messages
-        messages = [system_message, {"role": "user", "content": request.message}]
+        # Create or resume agent with session
+        agent = IntelligentAgent(
+            api_key=os.getenv("NVIDIA_API_KEY"),
+            session_id=request.session_id,
+            user_id=request.user_id
+        )
         
-        if request.stream:
-            # Streaming response
-            response_text = ""
-            stream = client.chat.completions.create(
-                model="openai/gpt-oss-120b",
-                messages=messages,
-                temperature=0.7,
-                max_tokens=1024,
-                stream=True
-            )
-            
-            for chunk in stream:
-                if chunk.choices[0].delta.content:
-                    response_text += chunk.choices[0].delta.content
-            
-            return ChatResponse(response=response_text, success=True)
-        else:
-            # Non-streaming response
-            response = client.chat.completions.create(
-                model="openai/gpt-oss-120b",
-                messages=messages,
-                temperature=0.7,
-                max_tokens=1024
-            )
-            
-            assistant_message = response.choices[0].message.content
-            return ChatResponse(response=assistant_message, success=True)
+        # Get response from agent
+        response_text = agent.chat(request.message, stream=request.stream)
         
+        # Return response with session ID
+        return ChatResponse(
+            response=response_text,
+            success=True,
+            session_id=agent.get_session_id()
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/sessions")
+async def list_sessions(user_id: Optional[str] = None):
+    """
+    List all conversation sessions
+    """
+    try:
+        from app.memory import ConversationMemory
+        memory = ConversationMemory()
+        sessions = memory.list_sessions(user_id)
+        return {"success": True, "sessions": sessions}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/sessions/{session_id}")
+async def get_session(session_id: str):
+    """
+    Get a specific session with full conversation history
+    """
+    try:
+        from app.memory import ConversationMemory
+        memory = ConversationMemory()
+        session_data = memory.get_session(session_id)
+        
+        if not session_data:
+            raise HTTPException(status_code=404, detail="Session not found")
+        
+        return {"success": True, "session": session_data}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/sessions/{session_id}")
+async def delete_session(session_id: str):
+    """
+    Delete a conversation session
+    """
+    try:
+        from app.memory import ConversationMemory
+        memory = ConversationMemory()
+        success = memory.delete_session(session_id)
+        
+        if not success:
+            raise HTTPException(status_code=404, detail="Session not found")
+        
+        return {"success": True, "message": "Session deleted"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

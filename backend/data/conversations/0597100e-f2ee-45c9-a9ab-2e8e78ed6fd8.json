@@ -1,0 +1,129 @@
+{
+  "session_id": "0597100e-f2ee-45c9-a9ab-2e8e78ed6fd8",
+  "user_id": null,
+  "created_at": "2026-01-05T12:16:46.641072",
+  "updated_at": "2026-01-05T12:19:05.828252",
+  "conversation_history": [
+    {
+      "role": "user",
+      "content": "hello",
+      "timestamp": "2026-01-05T12:16:46.641697"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello! 👋 How can I assist you with your hotel stay today? Are you looking for available rooms, need to book a reservation, or have any other questions?",
+      "timestamp": "2026-01-05T12:16:47.305332"
+    },
+    {
+      "role": "user",
+      "content": "hello can't waving how can I test you with your help stay today for you looking for available rooms need to book a reservation for have any other questions",
+      "timestamp": "2026-01-05T12:16:59.589249"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello! I’m ready to help you find and book a hotel stay. To get started, could you let me know a few details?\n\n1. **Check‑in date** (YYYY‑MM‑DD)  \n2. **Check‑out date** (YYYY‑MM‑DD)  \n3. **Number of guests**  \n4. **Preferred room type** (e.g., Standard, Deluxe, Suite) – if you’re not sure, just tell me what you’re looking for (e.g., “a comfortable room for two”).  \n5. **Maximum price per night** you’d like to stay under (optional).\n\nOnce I have that information I can search for available rooms and show you the options!",
+      "timestamp": "2026-01-05T12:17:01.827920"
+    },
+    {
+      "role": "user",
+      "content": " actually I am looking for",
+      "timestamp": "2026-01-05T12:17:01.888666"
+    },
+    {
+      "role": "assistant",
+      "content": "Sure thing! I’m ready to find the perfect room for you. To narrow down the options, could you let me know:\n\n1. **Check‑in date** (YYYY‑MM‑DD)  \n2. **Check‑out date** (YYYY‑MM‑DD)  \n3. **How many guests** will be staying?  \n4. **Room type** you prefer (Standard, Deluxe, Suite, etc.) – or just tell me the vibe you’re after (e.g., “a cozy room for two”).  \n5. **Maximum price per night** you’d like to stay under (optional).\n\nJust give me the details you have, and I’ll start searching right away!",
+      "timestamp": "2026-01-05T12:17:03.662663"
+    },
+    {
+      "role": "user",
+      "content": "New York is",
+      "timestamp": "2026-01-05T12:17:03.737145"
+    },
+    {
+      "role": "assistant",
+      "content": "Great! I can help you find a hotel in **New York**.  \n\nTo narrow down the options, could you let me know:\n\n1. **Check‑in date** (e.g., 2024‑07‑15)  \n2. **Check‑out date** (e.g., 2024‑07‑18)  \n3. **Number of guests** staying  \n4. **Preferred room type** (Standard, Deluxe, Suite, etc.) – or just the vibe you’re after (e.g., “a cozy room for two”)  \n5. **Maximum price per night** you’d like to stay under (optional)\n\nOnce I have those details, I’ll search for available rooms in New York and share the options with you. 😊",
+      "timestamp": "2026-01-05T12:17:05.887442"
+    },
+    {
+      "role": "user",
+      "content": "great I can help you find out the options could you let me know one check and date easy 24 to check out date kg 18th July",
+      "timestamp": "2026-01-05T12:17:39.005311"
+    },
+    {
+      "role": "assistant",
+      "content": "Sure thing! I just want to make sure I have the dates right so I can find the best options for you.\n\n- **Check‑in date:** Did you mean **July 24, 2024**?\n- **Check‑out date:** Did you mean **July 18, 2024** (which would be before the check‑in) **or perhaps July 28, 2024**?\n\nCould you also let me know:\n\n1. **Number of guests** staying?\n2. **Preferred room type** (Standard, Deluxe, Suite, etc.) or any special preferences?\n3. **Maximum price per night** you’d like to stay under (optional)?\n\nOnce I have the correct dates and these details, I’ll search for available rooms in New York right away! 🌆✨",
+      "timestamp": "2026-01-05T12:17:41.429615"
+    },
+    {
+      "role": "user",
+      "content": "I want",
+      "timestamp": "2026-01-05T12:17:43.133353"
+    },
+    {
+      "role": "assistant",
+      "content": "Absolutely! I’m ready to find you the perfect place in New York. To make sure I pull the right options, could you confirm a few details for me?\n\n| Detail | What I need from you |\n|--------|----------------------|\n| **Check‑in date** | (e.g., 2024‑07‑24) |\n| **Check‑out date** | (must be after the check‑in, e.g., 2024‑07‑28) |\n| **Number of guests** | Adults + children |\n| **Room type** | Standard, Deluxe, Suite, or a description like “cozy room for two” |\n| **Maximum price per night** *(optional)* | e.g., $250 / night |\n\nJust fill in the table (or give the info in a sentence) and I’ll run a search for available rooms right away. 🌆🏨✨",
+      "timestamp": "2026-01-05T12:17:44.987516"
+    },
+    {
+      "role": "user",
+      "content": "which date",
+      "timestamp": "2026-01-05T12:17:45.062600"
+    },
+    {
+      "role": "assistant",
+      "content": "Sure thing! Let’s lock in the dates first so I can find the right rooms for you.\n\n**Which dates would you like to stay?**  \n- **Check‑in:** (e.g., 2024‑07‑24)  \n- **Check‑out:** (must be **after** the check‑in date, e.g., 2024‑07‑28)\n\nIf you meant “July 24 to July 28”, just let me know. If you had different dates in mind, please tell me the exact check‑in and check‑out dates.\n\nOnce we have the dates, I’ll also need:\n\n1. Number of guests  \n2. Preferred room type (Standard, Deluxe, Suite, or any description)  \n3. Any maximum price per night you’d like (optional)\n\nJust fill in the details and I’ll start searching for available rooms in New York right away! 😊",
+      "timestamp": "2026-01-05T12:17:47.361112"
+    },
+    {
+      "role": "user",
+      "content": "absolutely I am",
+      "timestamp": "2026-01-05T12:17:49.108825"
+    },
+    {
+      "role": "assistant",
+      "content": "Sure thing! Let’s lock in the basics so I can find the perfect room for you in New York.\n\n| Detail | What I need from you |\n|--------|----------------------|\n| **Check‑in date** | (e.g., 2024‑07‑24) |\n| **Check‑out date** | (must be after the check‑in, e.g., 2024‑07‑28) |\n| **Number of guests** | Adults + children |\n| **Room type** | Standard, Deluxe, Suite, or a description like “cozy room for two” |\n| **Maximum price per night** *(optional)* | e.g., $250 / night |\n\nJust fill in the table (or write the info in a sentence) and I’ll run a search right away. 🌆🏨✨",
+      "timestamp": "2026-01-05T12:17:51.252772"
+    },
+    {
+      "role": "user",
+      "content": "details what I need from you 24th of July",
+      "timestamp": "2026-01-05T12:18:08.036777"
+    },
+    {
+      "role": "assistant",
+      "content": "Sure thing! Here’s the information I need to find the perfect room for you in New York:\n\n| Detail | What I need from you |\n|-------|----------------------|\n| **Check‑in date** | You’ve said **24 July 2024** – great! |\n| **Check‑out date** | The date you’ll be leaving (must be after 24 July). |\n| **Number of guests** | Adults and any children. |\n| **Room type** | Standard, Deluxe, Suite, or a description (e.g., “cozy room for two”). |\n| **Maximum price per night** *(optional)* | Your budget limit (e.g., $250/night). |\n\nIf you can fill in the missing pieces (check‑out date, guests, room type, and price‑range if you have one), I’ll run a search right away and show you the available options. 😊",
+      "timestamp": "2026-01-05T12:18:10.018220"
+    },
+    {
+      "role": "user",
+      "content": "2026 fast",
+      "timestamp": "2026-01-05T12:18:47.857288"
+    },
+    {
+      "role": "assistant",
+      "content": "Sure thing! Let’s lock in the basics so I can find you the best options quickly.\n\n| Detail               | Current value (please confirm or update) |\n|----------------------|-------------------------------------------|\n| **Check‑in date**    | **2026‑07‑24** (24 July 2026)               |\n| **Check‑out date**   | **2026‑07‑28** (4‑night stay) – is this okay? |\n| **Number of guests** | 2 adults (please let me know if it’s a different number) |\n| **Room type**        | Standard (or let me know if you prefer Deluxe / Suite or something else) |\n| **Maximum price**    | No limit specified (you can add a budget if you’d like) |\n\nIf everything looks good, just give me a quick “Yes, that’s correct” (or tell me any changes), and I’ll run a search for available rooms in New York right away. 🌆🏨✨",
+      "timestamp": "2026-01-05T12:18:50.634831"
+    },
+    {
+      "role": "user",
+      "content": " 5",
+      "timestamp": "2026-01-05T12:18:50.811178"
+    },
+    {
+      "role": "assistant",
+      "content": "I ran a search for a stay in New York from **July 24 – July 28 2026** for **5 guests**, but there are currently **no rooms available** that match those exact criteria.\n\nHere are a few options you might consider:\n\n| Option | What you could try |\n|--------|-------------------|\n| **Adjust the dates** | Move the check‑in or check‑out by a day or two (e.g., July 23 – July 27) to see if availability opens up. |\n| **Add a room type or budget** | Specifying a room type (e.g., “Family Suite” or “Deluxe”) or a maximum price per night can help narrow the search to properties that can accommodate larger groups. |\n| **Split into multiple rooms** | If you’re open to booking two rooms (e.g., a double‑room + a triple‑room), many hotels can fit a party of 5 more easily. |\n| **Consider nearby neighborhoods** | Expanding the search to nearby boroughs such as Brooklyn or Queens often yields more options for larger groups. |\n\nLet me know which direction you’d like to go—whether it’s tweaking the dates, adding a room type/budget, or looking for multiple rooms—and I’ll run a new search right away!",
+      "timestamp": "2026-01-05T12:18:54.967928"
+    },
+    {
+      "role": "user",
+      "content": "IPS Tilak",
+      "timestamp": "2026-01-05T12:19:03.727289"
+    },
+    {
+      "role": "assistant",
+      "content": "I’m happy to help, but I’m not sure I understand the request. Are you looking to:\n\n- Book a room for a guest named **IPS Tilak**?  \n- Find a hotel that has “IPS Tilak” in its name?  \n- Or something else entirely?\n\nIf you’d like to make a reservation, just let me know the check‑in and check‑out dates, the number of guests, and any room‑type or budget preferences, and I’ll get started right away! 🌟",
+      "timestamp": "2026-01-05T12:19:05.828234"
+    }
+  ],
+  "metadata": {}
+}

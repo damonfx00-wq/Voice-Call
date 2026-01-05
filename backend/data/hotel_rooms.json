@@ -1,0 +1,74 @@
+[
+  {
+    "room_id": "R101",
+    "room_type": "Standard Single",
+    "capacity": 1,
+    "price_per_night": 100,
+    "amenities": [
+      "WiFi",
+      "TV",
+      "Air Conditioning"
+    ],
+    "available": true
+  },
+  {
+    "room_id": "R102",
+    "room_type": "Standard Double",
+    "capacity": 2,
+    "price_per_night": 150,
+    "amenities": [
+      "WiFi",
+      "TV",
+      "Air Conditioning",
+      "Mini Bar"
+    ],
+    "available": true
+  },
+  {
+    "room_id": "R201",
+    "room_type": "Deluxe Suite",
+    "capacity": 2,
+    "price_per_night": 250,
+    "amenities": [
+      "WiFi",
+      "TV",
+      "Air Conditioning",
+      "Mini Bar",
+      "Ocean View",
+      "Balcony"
+    ],
+    "available": true
+  },
+  {
+    "room_id": "R202",
+    "room_type": "Family Suite",
+    "capacity": 4,
+    "price_per_night": 350,
+    "amenities": [
+      "WiFi",
+      "TV",
+      "Air Conditioning",
+      "Mini Bar",
+      "Kitchen",
+      "Living Room"
+    ],
+    "available": true
+  },
+  {
+    "room_id": "R301",
+    "room_type": "Presidential Suite",
+    "capacity": 4,
+    "price_per_night": 500,
+    "amenities": [
+      "WiFi",
+      "TV",
+      "Air Conditioning",
+      "Mini Bar",
+      "Ocean View",
+      "Balcony",
+      "Jacuzzi",
+      "Butler Service"
+    ],
+    "available": true
+  }
+]

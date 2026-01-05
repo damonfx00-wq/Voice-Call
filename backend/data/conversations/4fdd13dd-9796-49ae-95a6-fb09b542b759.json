@@ -1,0 +1,29 @@
+{
+  "session_id": "4fdd13dd-9796-49ae-95a6-fb09b542b759",
+  "user_id": null,
+  "created_at": "2026-01-05T12:42:53.527022",
+  "updated_at": "2026-01-05T12:43:04.198500",
+  "conversation_history": [
+    {
+      "role": "user",
+      "content": "hello hello",
+      "timestamp": "2026-01-05T12:42:53.527703"
+    },
+    {
+      "role": "assistant",
+      "content": "Hi there! How can I help you with your hotel plans today?",
+      "timestamp": "2026-01-05T12:42:53.993903"
+    },
+    {
+      "role": "user",
+      "content": "hello",
+      "timestamp": "2026-01-05T12:43:03.793896"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello! How can I assist you with your hotel stay today?",
+      "timestamp": "2026-01-05T12:43:04.198482"
+    }
+  ],
+  "metadata": {}
+}

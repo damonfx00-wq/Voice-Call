@@ -4,6 +4,7 @@ from typing import List, Dict, Any, Optional
 from openai import OpenAI
 import os
 from dotenv import load_dotenv
+from app.memory import ConversationMemory
 
 load_dotenv()
 
@@ -11,12 +12,15 @@ load_dotenv()
 class IntelligentAgent:
     """Agent that decides which MCP tool to use based on user requests"""
     
-    def __init__(self, api_key: str = None):
+    def __init__(self, api_key: str = None, session_id: Optional[str] = None, 
+                 user_id: Optional[str] = None):
         """
-        Initialize agent with NVIDIA API
+        Initialize agent with NVIDIA API and conversation memory
         
         Args:
             api_key: NVIDIA API key (or set NVIDIA_API_KEY env var)
+            session_id: Optional session ID to resume conversation
+            user_id: Optional user identifier
         """
         self.api_key = api_key or os.getenv("NVIDIA_API_KEY", "")
         
@@ -27,111 +31,145 @@ class IntelligentAgent:
         )
         
         self.model = "openai/gpt-oss-120b"
-        self.conversation_history = []
         
-        # Tool definitions for function calling
+        # Initialize conversation memory
+        self.memory = ConversationMemory()
+        
+        # Create or load session
+        if session_id:
+            self.session_id = session_id
+            # Verify session exists
+            if not self.memory.get_session(session_id):
+                # Session doesn't exist, create new one
+                self.session_id = self.memory.create_session(user_id)
+        else:
+            # Create new session
+            self.session_id = self.memory.create_session(user_id)
+        
+        # Load conversation history from memory
+        self.conversation_history = self.memory.get_formatted_history(self.session_id)
+        
+        # Tool definitions for function calling - Hotel Booking Only
         self.tools = [
             {
                 "type": "function",
                 "function": {
-                    "name": "read_csv",
-                    "description": "Read data from a CSV file with optional filtering and column selection",
+                    "name": "search_hotel_rooms",
+                    "description": "Search for available hotel rooms based on criteria like dates, number of guests, room type, and price",
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "filename": {
+                            "check_in": {
                                 "type": "string",
-                                "description": "Name of the CSV file to read"
+                                "description": "Check-in date in YYYY-MM-DD format"
                             },
-                            "filters": {
-                                "type": "object",
-                                "description": "Optional filters as column:value pairs"
+                            "check_out": {
+                                "type": "string",
+                                "description": "Check-out date in YYYY-MM-DD format"
                             },
-                            "columns": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "description": "Optional list of columns to return"
-                            },
-                            "limit": {
+                            "guests": {
                                 "type": "integer",
-                                "description": "Maximum number of rows to return"
+                                "description": "Number of guests"
+                            },
+                            "room_type": {
+                                "type": "string",
+                                "description": "Type of room (e.g., Standard, Deluxe, Suite)"
+                            },
+                            "max_price": {
+                                "type": "number",
+                                "description": "Maximum price per night"
                             }
-                        },
-                        "required": ["filename"]
+                        }
                     }
                 }
             },
             {
                 "type": "function",
                 "function": {
-                    "name": "write_csv",
-                    "description": "Write data to a CSV file",
+                    "name": "book_hotel_room",
+                    "description": "Book a hotel room for a guest",
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "filename": {
+                            "room_id": {
                                 "type": "string",
-                                "description": "Name of the CSV file"
+                                "description": "ID of the room to book (e.g., R101, R201)"
                             },
-                            "data": {
-                                "type": "array",
-                                "items": {"type": "object"},
-                                "description": "List of dictionaries to write"
-                            },
-                            "mode": {
+                            "guest_name": {
                                 "type": "string",
-                                "enum": ["overwrite", "append", "update"],
-                                "description": "Write mode"
-                            }
-                        },
-                        "required": ["filename", "data"]
-                    }
-                }
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "list_csv_files",
-                    "description": "List all CSV files in the data directory",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {}
-                    }
-                }
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "rag_query",
-                    "description": "Query the RAG system to retrieve relevant information from documents",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "query": {
-                                "type": "string",
-                                "description": "Search query"
+                                "description": "Name of the guest"
                             },
-                            "top_k": {
+                            "check_in": {
+                                "type": "string",
+                                "description": "Check-in date in YYYY-MM-DD format"
+                            },
+                            "check_out": {
+                                "type": "string",
+                                "description": "Check-out date in YYYY-MM-DD format"
+                            },
+                            "guests": {
                                 "type": "integer",
-                                "description": "Number of results to return"
+                                "description": "Number of guests"
+                            },
+                            "email": {
+                                "type": "string",
+                                "description": "Guest email address"
+                            },
+                            "phone": {
+                                "type": "string",
+                                "description": "Guest phone number"
                             }
                         },
-                        "required": ["query"]
+                        "required": ["room_id", "guest_name", "check_in", "check_out", "guests"]
                     }
                 }
             },
             {
                 "type": "function",
                 "function": {
-                    "name": "rag_ingest",
-                    "description": "Ingest documents into the RAG system",
+                    "name": "get_hotel_booking",
+                    "description": "Get details of a hotel booking by booking ID",
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "file_paths": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "description": "List of file paths to ingest"
+                            "booking_id": {
+                                "type": "string",
+                                "description": "Booking ID (e.g., BK20260105115810)"
+                            }
+                        },
+                        "required": ["booking_id"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "cancel_hotel_booking",
+                    "description": "Cancel a hotel booking",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "booking_id": {
+                                "type": "string",
+                                "description": "Booking ID to cancel"
+                            }
+                        },
+                        "required": ["booking_id"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "list_hotel_bookings",
+                    "description": "List all hotel bookings, optionally filtered by status",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "status": {
+                                "type": "string",
+                                "enum": ["confirmed", "cancelled"],
+                                "description": "Filter by booking status"
                             }
                         }
                     }
@@ -141,28 +179,22 @@ class IntelligentAgent:
     
     def execute_tool(self, tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Execute a tool (this would call the MCP server in production)
-        For now, we'll import and call directly
+        Execute a hotel booking tool
         """
-        from app.tools.csv_tools import CSVTools
-        from app.tools.rag_tool import RAGTool
+        from app.tools.hotel_tools import HotelTools
         
-        csv_tools = CSVTools(data_dir=os.getenv("CSV_DATA_DIR", "./data"))
-        rag_tool = RAGTool(
-            documents_dir=os.getenv("RAG_DOCUMENTS_DIR", "./data/documents"),
-            vector_db_dir=os.getenv("VECTOR_DB_DIR", "./data/vector_db")
-        )
+        hotel_tools = HotelTools(data_dir=os.getenv("HOTEL_DATA_DIR", "./data"))
         
-        if tool_name == "read_csv":
-            return csv_tools.read_csv(**arguments)
-        elif tool_name == "write_csv":
-            return csv_tools.write_csv(**arguments)
-        elif tool_name == "list_csv_files":
-            return csv_tools.list_csv_files()
-        elif tool_name == "rag_query":
-            return rag_tool.query_with_context(**arguments)
-        elif tool_name == "rag_ingest":
-            return rag_tool.ingest_documents(**arguments)
+        if tool_name == "search_hotel_rooms":
+            return hotel_tools.search_rooms(**arguments)
+        elif tool_name == "book_hotel_room":
+            return hotel_tools.book_room(**arguments)
+        elif tool_name == "get_hotel_booking":
+            return hotel_tools.get_booking(**arguments)
+        elif tool_name == "cancel_hotel_booking":
+            return hotel_tools.cancel_booking(**arguments)
+        elif tool_name == "list_hotel_bookings":
+            return hotel_tools.list_all_bookings(**arguments)
         else:
             return {"success": False, "error": f"Unknown tool: {tool_name}"}
     
@@ -183,36 +215,27 @@ class IntelligentAgent:
             "content": user_message
         })
         
-        # System prompt
+        # Save user message to memory
+        self.memory.add_message(self.session_id, "user", user_message)
+        
+        # System prompt – friendly, concise, human‑like
         system_message = {
             "role": "system",
-            "content": """You are an intelligent assistant with access to CSV file operations and a RAG (Retrieval-Augmented Generation) system.
-
-Your capabilities:
-1. CSV Operations: Read, write, and list CSV files
-2. RAG System: Query documents and retrieve relevant information
-
-When a user asks a question:
-- Use read_csv to read data from CSV files
-- Use write_csv to create or update CSV files
-- Use list_csv_files to see available CSV files
-- Use rag_query to search through documents and retrieve relevant information
-- Use rag_ingest to add new documents to the knowledge base
-
-Always choose the most appropriate tool(s) for the task. You can use multiple tools in sequence if needed."""
+            "content": """You are a friendly, helpful hotel booking assistant. Keep answers short, natural, and conversational. Use simple language and only give the info the user asks for. If you need more details, ask politely. You have access to previous conversation history for context."""
         }
         
         messages = [system_message] + self.conversation_history
         
         try:
             # Make API call with function calling
+            # Adjust model parameters for concise, smart replies
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
                 tools=self.tools,
                 tool_choice="auto",
-                temperature=0.7,
-                max_tokens=4096,
+                temperature=0.6,
+                max_tokens=1024,
                 stream=stream
             )
             
@@ -227,6 +250,8 @@ Always choose the most appropriate tool(s) for the task. You can use multiple to
                 "role": "assistant",
                 "content": error_msg
             })
+            # Save error to memory
+            self.memory.add_message(self.session_id, "assistant", error_msg)
             return error_msg
     
     def _handle_response(self, response) -> str:
@@ -278,6 +303,9 @@ Always choose the most appropriate tool(s) for the task. You can use multiple to
                 "content": final_content
             })
             
+            # Save assistant response to memory
+            self.memory.add_message(self.session_id, "assistant", final_content)
+            
             return final_content
         else:
             # No tool calls, just return the response
@@ -286,6 +314,8 @@ Always choose the most appropriate tool(s) for the task. You can use multiple to
                 "role": "assistant",
                 "content": content
             })
+            # Save assistant response to memory
+            self.memory.add_message(self.session_id, "assistant", content)
             return content
     
     def _handle_streaming_response(self, response) -> str:
@@ -305,8 +335,22 @@ Always choose the most appropriate tool(s) for the task. You can use multiple to
             "content": full_response
         })
         
+        # Save assistant response to memory
+        self.memory.add_message(self.session_id, "assistant", full_response)
+        
         return full_response
     
     def reset_conversation(self):
         """Reset conversation history"""
         self.conversation_history = []
+        # Clear memory storage
+        self.memory.clear_history(self.session_id)
+    
+    def get_session_id(self) -> str:
+        """Get the current session ID"""
+        return self.session_id
+    
+    def get_session_info(self) -> Optional[Dict[str, Any]]:
+        """Get session information"""
+        return self.memory.get_session(self.session_id)
+

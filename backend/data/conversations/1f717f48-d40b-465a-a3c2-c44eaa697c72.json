@@ -1,0 +1,39 @@
+{
+  "session_id": "1f717f48-d40b-465a-a3c2-c44eaa697c72",
+  "user_id": null,
+  "created_at": "2026-01-05T12:22:55.070901",
+  "updated_at": "2026-01-05T12:23:10.751793",
+  "conversation_history": [
+    {
+      "role": "user",
+      "content": "hello",
+      "timestamp": "2026-01-05T12:22:55.071398"
+    },
+    {
+      "role": "assistant",
+      "content": "Hi there! 👋 How can I help you with your hotel plans today?",
+      "timestamp": "2026-01-05T12:22:56.474354"
+    },
+    {
+      "role": "user",
+      "content": "hi there and weaving how can I help you with your help plans today",
+      "timestamp": "2026-01-05T12:23:03.672604"
+    },
+    {
+      "role": "assistant",
+      "content": "Hey! I’m here to help with any hotel bookings you need. What dates, destination, or room type are you looking for?",
+      "timestamp": "2026-01-05T12:23:04.455656"
+    },
+    {
+      "role": "user",
+      "content": "hey I am here to help with any hotel booking you need",
+      "timestamp": "2026-01-05T12:23:10.087524"
+    },
+    {
+      "role": "assistant",
+      "content": "Sure thing! Just let me know what you’re looking for—dates, number of guests, room type, or anything else—and I’ll find the perfect options for you.",
+      "timestamp": "2026-01-05T12:23:10.751717"
+    }
+  ],
+  "metadata": {}
+}

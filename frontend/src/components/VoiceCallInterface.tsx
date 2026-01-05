@@ -25,12 +25,18 @@ export default function VoiceCallInterface() {
     // Transcript state
     const [transcript, setTranscript] = useState<TranscriptItem[]>([]);
 
+    // Session management state
+    const [sessionId, setSessionId] = useState<string | null>(null);
+    const [hasSpokenIntro, setHasSpokenIntro] = useState(false);
+
     const recognitionRef = useRef<any>(null);
     const synthesisRef = useRef<SpeechSynthesis | null>(null);
     const callTimerRef = useRef<number | null>(null);
     const audioContextRef = useRef<AudioContext | null>(null);
     const analyserRef = useRef<AnalyserNode | null>(null);
     const micStreamRef = useRef<MediaStream | null>(null);
+    const animationFrameRef = useRef<number | null>(null);
+    const sentenceTimeoutRef = useRef<number | null>(null); // For waiting until sentence is complete
 
     // Timer Effect - Independent of other states
     useEffect(() => {
@@ -63,6 +69,12 @@ export default function VoiceCallInterface() {
             recognitionRef.current.maxAlternatives = 1;
 
             recognitionRef.current.onresult = (event: any) => {
+                // CRITICAL: Ignore all input if AI is speaking
+                if (isSpeaking) {
+                    console.log('Ignoring user input - AI is speaking');
+                    return;
+                }
+
                 let interimTranscript = '';
                 let finalTranscript = '';
 
@@ -75,10 +87,23 @@ export default function VoiceCallInterface() {
                     }
                 }
 
+                // Show interim results
                 setCurrentTranscript(interimTranscript || finalTranscript);
 
-                if (finalTranscript) {
-                    handleVoiceInput(finalTranscript);
+                // Wait for complete sentence before processing
+                if (finalTranscript && !isSpeaking) {
+                    // Clear any existing timeout
+                    if (sentenceTimeoutRef.current) {
+                        clearTimeout(sentenceTimeoutRef.current);
+                    }
+
+                    // Wait 1.5 seconds to ensure user has finished speaking
+                    // This allows for natural pauses within a sentence
+                    sentenceTimeoutRef.current = window.setTimeout(() => {
+                        if (!isSpeaking) {
+                            handleVoiceInput(finalTranscript);
+                        }
+                    }, 1500);
                 }
             };
 
@@ -141,11 +166,43 @@ export default function VoiceCallInterface() {
     }, [callState, isSpeaking]);
 
     const stopAll = () => {
-        if (recognitionRef.current) recognitionRef.current.stop();
+        console.log('Stopping all services...');
+        setIsListening(false);
+        setIsSpeaking(false);
+
+        // Cancel animation frame
+        if (animationFrameRef.current) {
+            cancelAnimationFrame(animationFrameRef.current);
+            animationFrameRef.current = null;
+        }
+
+        // Clear sentence timeout
+        if (sentenceTimeoutRef.current) {
+            clearTimeout(sentenceTimeoutRef.current);
+            sentenceTimeoutRef.current = null;
+        }
+
+        try {
+            if (recognitionRef.current) {
+                recognitionRef.current.onend = null; // Remove the auto-restart handler
+                recognitionRef.current.stop();
+            }
+        } catch (e) {
+            console.log('Recognition stop error:', e);
+        }
+
         if (synthesisRef.current) synthesisRef.current.cancel();
-        // Don't clear timer here, handled by separate effect
-        if (micStreamRef.current) micStreamRef.current.getTracks().forEach(track => track.stop());
-        if (audioContextRef.current) audioContextRef.current.close();
+        if (micStreamRef.current) {
+            micStreamRef.current.getTracks().forEach(track => track.stop());
+            micStreamRef.current = null;
+        }
+        if (audioContextRef.current) {
+            audioContextRef.current.close();
+            audioContextRef.current = null;
+        }
+
+        // Reset audio level
+        setAudioLevel(0);
     };
 
     const initializeAudioVisualization = async () => {
@@ -185,7 +242,7 @@ export default function VoiceCallInterface() {
             const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
             setAudioLevel(average / 255);
 
-            requestAnimationFrame(animate);
+            animationFrameRef.current = requestAnimationFrame(animate);
         };
 
         animate();
@@ -240,9 +297,11 @@ export default function VoiceCallInterface() {
         // Timer is handled by useEffect now
         await initializeAudioVisualization();
 
+        // Speak intro greeting when call starts
         const greeting = 'Hello! This is your AI assistant. I\'m listening. How can I help you today?';
         setLastAIResponse(greeting);
         addToTranscript('ai', greeting);
+        setHasSpokenIntro(true);
 
         // Speak greeting then start listening
         speakText(greeting);
@@ -304,7 +363,17 @@ export default function VoiceCallInterface() {
         stopListening();
 
         try {
-            const response = await apiService.chat({ message: text });
+            // Send message with session ID for conversation continuity
+            const response = await apiService.chat({
+                message: text,
+                session_id: sessionId || undefined
+            });
+
+            // Store session ID from response
+            if (response.session_id && !sessionId) {
+                setSessionId(response.session_id);
+            }
+
             setLastAIResponse(response.response);
             addToTranscript('ai', response.response);
             speakText(response.response);
@@ -364,34 +433,47 @@ export default function VoiceCallInterface() {
         synthesisRef.current.speak(utterance);
     };
 
-    const downloadTranscript = () => {
+    const saveTranscript = async () => {
         if (transcript.length === 0) return;
 
-        const date = new Date().toLocaleString();
-        let content = `Call Transcript - ${date}\n`;
-        content += `Duration: ${formatDuration(callDuration)}\n`;
-        content += `----------------------------------------\n\n`;
+        try {
+            const response = await apiService.saveTranscript({
+                transcript: transcript,
+                duration: formatDuration(callDuration),
+                phone_number: phoneNumber
+            });
 
-        transcript.forEach(item => {
-            const speaker = item.sender === 'user' ? 'You' : 'AI Assistant';
-            content += `[${item.timestamp}] ${speaker}: ${item.text}\n\n`;
-        });
-
-        const blob = new Blob([content], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `call_transcript_${new Date().getTime()}.txt`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+            console.log('Transcript saved:', response);
+            return response;
+        } catch (error) {
+            console.error('Error saving transcript:', error);
+            throw error;
+        }
     };
 
-    const handleEndCall = () => {
-        stopAll();
-        downloadTranscript(); // Auto-download transcript
+    const handleEndCall = async () => {
+        console.log('Ending call...');
+
+        // CRITICAL: Immediately stop AI from speaking
+        if (synthesisRef.current) {
+            synthesisRef.current.cancel();
+            console.log('AI speech stopped immediately');
+        }
+        setIsSpeaking(false);
+
+        // CRITICAL: Set state to 'ended' FIRST to prevent auto-restart
         setCallState('ended');
+
+        // Then stop all services
+        stopAll();
+
+        // Save transcript to backend
+        try {
+            await saveTranscript();
+            console.log('Transcript saved successfully');
+        } catch (error) {
+            console.error('Failed to save transcript:', error);
+        }
 
         setTimeout(() => {
             setCallState('idle');
@@ -402,6 +484,8 @@ export default function VoiceCallInterface() {
             setLastAIResponse('');
             setError(null);
             setTranscript([]);
+            setHasSpokenIntro(false);
+            // Note: We keep sessionId to continue conversation in next call
         }, 3000);
     };
 
@@ -457,16 +541,21 @@ export default function VoiceCallInterface() {
                                 </button>
                             )}
                             <button
-                                className="call-button"
+                                className="call-button-mic"
                                 onClick={handleCall}
                                 disabled={callState === 'dialing'}
                             >
                                 {callState === 'dialing' ? (
                                     <div className="spinner-small"></div>
                                 ) : (
-                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z" />
-                                    </svg>
+                                    <>
+                                        <div className="mic-circle">
+                                            <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+                                                <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z" />
+                                            </svg>
+                                        </div>
+                                        <span className="call-button-text">Tap to Call</span>
+                                    </>
                                 )}
                             </button>
                         </div>
@@ -548,7 +637,7 @@ export default function VoiceCallInterface() {
                     <div className="ended-screen animate-fadeIn">
                         <h2>Call Ended</h2>
                         <p className="call-summary">Duration: {formatDuration(callDuration)}</p>
-                        <p className="transcript-note">Transcript downloaded</p>
+                        <p className="transcript-note">Transcript saved to server</p>
                     </div>
                 )}
             </div>

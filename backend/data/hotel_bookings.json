@@ -1,0 +1,18 @@
+[
+  {
+    "booking_id": "BK20260105123248",
+    "room_id": "R201",
+    "room_type": "Deluxe Suite",
+    "guest_name": "xyz",
+    "email": "xyz@gmail.com",
+    "phone": "123 321 1231",
+    "check_in": "2026-02-23",
+    "check_out": "2026-02-26",
+    "guests": 2,
+    "nights": 3,
+    "price_per_night": 250,
+    "total_price": 750,
+    "status": "confirmed",
+    "booking_date": "2026-01-05 12:32:48"
+  }
+]

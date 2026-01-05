@@ -10,11 +10,14 @@ export interface ChatMessage {
 export interface ChatRequest {
     message: string;
     stream?: boolean;
+    session_id?: string;  // Optional session ID to resume conversation
+    user_id?: string;  // Optional user identifier
 }
 
 export interface ChatResponse {
     response: string;
     success: boolean;
+    session_id: string;  // Session ID for future requests
 }
 
 export interface CSVReadRequest {
@@ -37,6 +40,12 @@ export interface RAGQueryRequest {
 
 export interface RAGIngestRequest {
     file_paths?: string[];
+}
+
+export interface TranscriptSaveRequest {
+    transcript: any[];
+    duration: string;
+    phone_number?: string;
 }
 
 class APIService {
@@ -126,6 +135,30 @@ class APIService {
     async ragClear(): Promise<any> {
         return this.request('/api/rag/clear', {
             method: 'POST',
+        });
+    }
+
+    // Transcript Endpoints
+    async saveTranscript(request: TranscriptSaveRequest): Promise<any> {
+        return this.request('/api/transcript/save', {
+            method: 'POST',
+            body: JSON.stringify(request),
+        });
+    }
+
+    // Session Management Endpoints
+    async listSessions(user_id?: string): Promise<any> {
+        const params = user_id ? `?user_id=${user_id}` : '';
+        return this.request(`/api/sessions${params}`);
+    }
+
+    async getSession(session_id: string): Promise<any> {
+        return this.request(`/api/sessions/${session_id}`);
+    }
+
+    async deleteSession(session_id: string): Promise<any> {
+        return this.request(`/api/sessions/${session_id}`, {
+            method: 'DELETE',
         });
     }
 }

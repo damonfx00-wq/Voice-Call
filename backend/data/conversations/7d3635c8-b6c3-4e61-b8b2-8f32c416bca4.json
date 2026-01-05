@@ -1,0 +1,69 @@
+{
+  "session_id": "7d3635c8-b6c3-4e61-b8b2-8f32c416bca4",
+  "user_id": null,
+  "created_at": "2026-01-05T12:12:14.883373",
+  "updated_at": "2026-01-05T12:13:19.691212",
+  "conversation_history": [
+    {
+      "role": "user",
+      "content": "hello",
+      "timestamp": "2026-01-05T12:12:14.883837"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello! 👋 I'm your hotel booking assistant. How can I help you today? Looking for a room, want to check an existing reservation, or need anything else?",
+      "timestamp": "2026-01-05T12:12:15.936301"
+    },
+    {
+      "role": "user",
+      "content": "hello can't waving I am your hotel booking assistant how can I help you today looking for a room want to check and existing reservation for need anything else",
+      "timestamp": "2026-01-05T12:12:26.900614"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello! 😊 I’m here to help with any hotel‑related needs you have—whether you’d like to search for a room, modify an existing reservation, or anything else. Just let me know what you’re looking for, and we’ll get started!",
+      "timestamp": "2026-01-05T12:12:27.636238"
+    },
+    {
+      "role": "user",
+      "content": "tell me you have whether you like to search for room",
+      "timestamp": "2026-01-05T12:12:39.159489"
+    },
+    {
+      "role": "assistant",
+      "content": "Absolutely—I can help you search for available rooms right now!  \n\nTo find the best options, could you let me know:\n\n1. **Check‑in date** (YYYY‑MM‑DD)  \n2. **Check‑out date** (YYYY‑MM‑DD)  \n3. **Number of guests**  \n4. Any **preferred room type** (e.g., Standard, Deluxe, Suite)  \n5. Your **budget** (maximum price per night)  \n\nJust share the details that are important to you, and I’ll pull up the available rooms.",
+      "timestamp": "2026-01-05T12:12:40.413095"
+    },
+    {
+      "role": "user",
+      "content": "absolutely I can help you search for available rooms right now define the best options could you let me know one check and date why why mdd to check out date why why I'm DD free number of Guest for any asterisk preferred the lacs sweet 5 restaurant",
+      "timestamp": "2026-01-05T12:13:10.682997"
+    },
+    {
+      "role": "assistant",
+      "content": "Sure thing! To find the perfect room for you, I just need a few details:\n\n1. **Check‑in date** (format YYYY‑MM‑DD)  \n2. **Check‑out date** (format YYYY‑MM‑DD)  \n3. **Number of guests** staying  \n4. **Room type** you prefer (e.g., Standard, Deluxe, Suite) – if you’re not sure, just let me know what you’re looking for (e.g., a room with a king‑size bed, a view, extra space, etc.)  \n5. **Maximum price per night** you’d like to stay under (optional)\n\nFeel free to give me as much or as little as you have right now, and I’ll start searching for available options!",
+      "timestamp": "2026-01-05T12:13:12.140179"
+    },
+    {
+      "role": "user",
+      "content": "looking for hotel in",
+      "timestamp": "2026-01-05T12:13:16.243086"
+    },
+    {
+      "role": "assistant",
+      "content": "Sure thing! I’m ready to find you the perfect place. To narrow things down, could you let me know:\n\n1. **Where** you’d like to stay (city, neighborhood, or a specific hotel name)  \n2. **Check‑in date** (YYYY‑MM‑DD)  \n3. **Check‑out date** (YYYY‑MM‑DD)  \n4. **Number of guests** (adults + children, if any)  \n5. Any **room‑type preference** (Standard, Deluxe, Suite, king‑bed, etc.) – or just tell me what’s most important (e.g., a view, extra space, pet‑friendly)  \n6. Your **budget** or maximum price per night (optional)\n\nJust give me as much as you have, and I’ll start pulling up the best options for you!",
+      "timestamp": "2026-01-05T12:13:17.668151"
+    },
+    {
+      "role": "user",
+      "content": "in new",
+      "timestamp": "2026-01-05T12:13:18.268323"
+    },
+    {
+      "role": "assistant",
+      "content": "Sure thing! I can start looking for hotels for you right away.\n\nCould you let me know a few more details so I can find the best options?\n\n1. **Location** – which city or area are you looking at? (e.g., New York, New Orleans, New Delhi, etc.)  \n2. **Check‑in date** (YYYY‑MM‑DD)  \n3. **Check‑out date** (YYYY‑MM‑DD)  \n4. **Number of guests** (adults + children, if any)  \n5. **Preferred room type** (Standard, Deluxe, Suite, king‑bed, etc.) – or any special request like a view, pet‑friendly, etc.  \n6. **Maximum price per night** you’d like to stay under (optional)\n\nJust fill in what you have, and I’ll pull up the available rooms for you!",
+      "timestamp": "2026-01-05T12:13:19.691157"
+    }
+  ],
+  "metadata": {}
+}

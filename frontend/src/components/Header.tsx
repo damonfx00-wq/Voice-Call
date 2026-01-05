@@ -41,7 +41,7 @@ export default function Header({ onThemeToggle, isDark }: HeaderProps) {
                     </div>
                 </div>
 
-                <nav className="header-nav">
+                {/* <nav className="header-nav">
                     <a href="#chat" className="nav-link active">
                         <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
                             <path d="M2 5C2 3.89543 2.89543 3 4 3H16C17.1046 3 18 3.89543 18 5V12C18 13.1046 17.1046 14 16 14H11L7 17V14H4C2.89543 14 2 13.1046 2 12V5Z" />
@@ -61,7 +61,7 @@ export default function Header({ onThemeToggle, isDark }: HeaderProps) {
                         </svg>
                         Documents
                     </a>
-                </nav>
+                </nav> */}
 
                 <div className="header-right">
                     <button

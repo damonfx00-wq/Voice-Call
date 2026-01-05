@@ -1,0 +1,29 @@
+{
+  "session_id": "111a61f0-aa22-46bc-a378-f9478ce17399",
+  "user_id": null,
+  "created_at": "2026-01-05T12:45:32.676115",
+  "updated_at": "2026-01-05T12:45:59.731636",
+  "conversation_history": [
+    {
+      "role": "user",
+      "content": "can you please help me to find hotel in India",
+      "timestamp": "2026-01-05T12:45:32.676667"
+    },
+    {
+      "role": "assistant",
+      "content": "Sure! I can look up hotels for you. Could you let me know:\n\n- Which city or area in India you’d like to stay in?  \n- Check‑in and check‑out dates (or just the dates you have in mind).  \n- How many guests will be staying?  \n- Any preferred room type (Standard, Deluxe, Suite, etc.) or budget per night?  \n\nThe more details you give, the better I can match you with the right options.",
+      "timestamp": "2026-01-05T12:45:34.159953"
+    },
+    {
+      "role": "user",
+      "content": "I like to stay",
+      "timestamp": "2026-01-05T12:45:58.830787"
+    },
+    {
+      "role": "assistant",
+      "content": "Sure! To find the best options, could you tell me:\n\n- Which city or region in India you’d like to stay in?  \n- Your check‑in and check‑out dates (or just the dates you have in mind).  \n- How many guests will be staying?  \n- Any preferred room type or budget per night?  \n\nThanks!",
+      "timestamp": "2026-01-05T12:45:59.731614"
+    }
+  ],
+  "metadata": {}
+}
