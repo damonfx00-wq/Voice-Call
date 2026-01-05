@@ -36,7 +36,14 @@ export default function VoiceCallInterface() {
     const analyserRef = useRef<AnalyserNode | null>(null);
     const micStreamRef = useRef<MediaStream | null>(null);
     const animationFrameRef = useRef<number | null>(null);
-    const sentenceTimeoutRef = useRef<number | null>(null); // For waiting until sentence is complete
+    const sentenceTimeoutRef = useRef<number | null>(null);
+
+    const callStateRef = useRef<CallState>('idle');
+
+    // Keep ref in sync with state to avoid stale closures in callbacks
+    useEffect(() => {
+        callStateRef.current = callState;
+    }, [callState]);
 
     // Timer Effect - Independent of other states
     useEffect(() => {
@@ -100,7 +107,8 @@ export default function VoiceCallInterface() {
                     // Wait 1.5 seconds to ensure user has finished speaking
                     // This allows for natural pauses within a sentence
                     sentenceTimeoutRef.current = window.setTimeout(() => {
-                        if (!isSpeaking) {
+                        // Check ref to ensure we're still connected and not speaking
+                        if (!isSpeaking && callStateRef.current === 'connected') {
                             handleVoiceInput(finalTranscript);
                         }
                     }, 1500);
@@ -118,11 +126,15 @@ export default function VoiceCallInterface() {
                 setIsListening(false);
 
                 // CRITICAL: Always restart if connected and not speaking
-                if (callState === 'connected' && !isSpeaking) {
+                // Use Ref to check checking state
+                if (callStateRef.current === 'connected' && !isSpeaking) {
                     console.log('Auto-restarting listener...');
                     setTimeout(() => {
                         try {
-                            recognitionRef.current?.start();
+                            // Double check before starting
+                            if (callStateRef.current === 'connected') {
+                                recognitionRef.current?.start();
+                            }
                         } catch (e) {
                             console.log('Restart failed:', e);
                         }
@@ -137,17 +149,19 @@ export default function VoiceCallInterface() {
                     setError('Microphone access denied. Please allow microphone access.');
                 } else if (event.error === 'no-speech') {
                     // Silence detected - just restart immediately
-                    if (callState === 'connected' && !isSpeaking) {
+                    if (callStateRef.current === 'connected' && !isSpeaking) {
                         try {
                             recognitionRef.current?.stop();
-                            setTimeout(() => recognitionRef.current?.start(), 200);
+                            setTimeout(() => {
+                                if (callStateRef.current === 'connected') recognitionRef.current?.start();
+                            }, 200);
                         } catch (e) { }
                     }
                 } else {
-                    if (callState === 'connected' && !isSpeaking) {
+                    if (callStateRef.current === 'connected' && !isSpeaking) {
                         setTimeout(() => {
                             try {
-                                recognitionRef.current?.start();
+                                if (callStateRef.current === 'connected') recognitionRef.current?.start();
                             } catch (e) { }
                         }, 1000);
                     }
@@ -236,7 +250,7 @@ export default function VoiceCallInterface() {
         const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
 
         const animate = () => {
-            if (callState !== 'connected') return;
+            if (callStateRef.current !== 'connected') return;
 
             analyserRef.current!.getByteFrequencyData(dataArray);
             const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
@@ -308,7 +322,7 @@ export default function VoiceCallInterface() {
     };
 
     const startListening = () => {
-        if (recognitionRef.current && callState === 'connected') {
+        if (recognitionRef.current && callStateRef.current === 'connected') {
             try {
                 recognitionRef.current.start();
             } catch (error) {
@@ -363,11 +377,20 @@ export default function VoiceCallInterface() {
         stopListening();
 
         try {
+            // Check if call ended before making request
+            if (callStateRef.current !== 'connected') return;
+
             // Send message with session ID for conversation continuity
             const response = await apiService.chat({
                 message: text,
                 session_id: sessionId || undefined
             });
+
+            // CRITICAL: Check if call is still connected after awaiting response
+            if (callStateRef.current !== 'connected') {
+                console.log('Call ended while fetching API response. Discarding.');
+                return;
+            }
 
             // Store session ID from response
             if (response.session_id && !sessionId) {
@@ -378,6 +401,9 @@ export default function VoiceCallInterface() {
             addToTranscript('ai', response.response);
             speakText(response.response);
         } catch (error) {
+            // Check if call is still connected
+            if (callStateRef.current !== 'connected') return;
+
             const errorMessage = 'Sorry, I encountered an error. Please try again.';
             setLastAIResponse(errorMessage);
             addToTranscript('ai', errorMessage);
@@ -386,7 +412,8 @@ export default function VoiceCallInterface() {
     };
 
     const speakText = (text: string) => {
-        if (!synthesisRef.current) return;
+        // Guard clause: Don't speak if call is not connected
+        if (!synthesisRef.current || callStateRef.current !== 'connected') return;
 
         // Stop listening while speaking to avoid AI hearing itself
         if (recognitionRef.current) {
@@ -415,9 +442,12 @@ export default function VoiceCallInterface() {
             setIsSpeaking(false);
 
             // CRITICAL: Resume listening immediately after speaking
-            if (callState === 'connected') {
+            // Check REF for current state
+            if (callStateRef.current === 'connected') {
                 console.log('Resuming listening after TTS...');
                 setTimeout(() => startListening(), 200);
+            } else {
+                console.log('Call ended, not resuming listener.');
             }
         };
 
@@ -425,12 +455,15 @@ export default function VoiceCallInterface() {
             console.error('TTS Error:', e);
             setIsSpeaking(false);
             // Resume listening even on error
-            if (callState === 'connected') {
+            if (callStateRef.current === 'connected') {
                 setTimeout(() => startListening(), 200);
             }
         };
 
-        synthesisRef.current.speak(utterance);
+        // Double check before actually speaking
+        if (callStateRef.current === 'connected') {
+            synthesisRef.current.speak(utterance);
+        }
     };
 
     const saveTranscript = async () => {
@@ -454,15 +487,17 @@ export default function VoiceCallInterface() {
     const handleEndCall = async () => {
         console.log('Ending call...');
 
+        // CRITICAL: Set state to 'ended' FIRST to prevent auto-restart logic in other functions
+        setCallState('ended');
+        // also update ref immediately for current sync execution
+        callStateRef.current = 'ended';
+
         // CRITICAL: Immediately stop AI from speaking
         if (synthesisRef.current) {
             synthesisRef.current.cancel();
             console.log('AI speech stopped immediately');
         }
         setIsSpeaking(false);
-
-        // CRITICAL: Set state to 'ended' FIRST to prevent auto-restart
-        setCallState('ended');
 
         // Then stop all services
         stopAll();
@@ -475,6 +510,16 @@ export default function VoiceCallInterface() {
             console.error('Failed to save transcript:', error);
         }
 
+        // Clear conversation memory by deleting the session
+        if (sessionId) {
+            try {
+                await apiService.deleteSession(sessionId);
+                console.log('Conversation memory cleared successfully');
+            } catch (error) {
+                console.error('Failed to clear conversation memory:', error);
+            }
+        }
+
         setTimeout(() => {
             setCallState('idle');
             setPhoneNumber('');
@@ -485,8 +530,8 @@ export default function VoiceCallInterface() {
             setLastAIResponse('');
             setError(null);
             setTranscript([]);
+            setSessionId(null); // Clear session ID to start fresh next call
             // setHasSpokenIntro(false);
-            // Note: We keep sessionId to continue conversation in next call
         }, 3000);
     };
 

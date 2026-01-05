@@ -5,6 +5,7 @@ from openai import OpenAI
 import os
 from dotenv import load_dotenv
 from app.memory import ConversationMemory
+from datetime import datetime
 
 load_dotenv()
 
@@ -229,10 +230,21 @@ class IntelligentAgent:
         # Save user message to memory
         self.memory.add_message(self.session_id, "user", user_message)
         
+        # Get current date for relative date calculation
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        
         # System prompt – detailed behavior per user request
         system_message = {
             "role": "system",
-            "content": """You are an intelligent, polite, and professional AI call bot for ABC Hotel. Your goal is to help guests book a room by collecting all necessary details, checking availability, and confirming the booking.
+            "content": f"""You are an intelligent, polite, and professional AI call bot for ABC Hotel. Your goal is to help guests book a room by collecting all necessary details, checking availability, and confirming the booking.
+
+CURRENT DATE: {current_date}
+
+DATE PARSING INSTRUCTIONS:
+- Users may provide dates in diverse formats (e.g., "next Friday", "tomorrow", "March 10th", "3 days from now", "12/05/2026").
+- You MUST interpret these phrases relative to the CURRENT DATE ({current_date}).
+- When calling tools (search_hotel_rooms, book_hotel_room), ALWAYS convert these dates to the specific "YYYY-MM-DD" format.
+- Do NOT ask the user to reformat the date if you can understand it.
 
 BEHAVIOR:
 - Polite, Clear, Patient, Professional, Helpful.
