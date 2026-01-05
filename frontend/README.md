@@ -1,6 +1,6 @@
-# HotelHub AI - Frontend
+# Voice Call AI Assistant - Frontend
 
-A modern voice-call interface for hotel booking powered by AI assistant using NVIDIA API.
+A modern voice-call interface for interacting with an AI assistant powered by MCP server and NVIDIA API.
 
 ## Features
 

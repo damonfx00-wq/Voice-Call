@@ -39,11 +39,13 @@ export default function VoiceCallInterface() {
     const sentenceTimeoutRef = useRef<number | null>(null);
 
     const callStateRef = useRef<CallState>('idle');
+    const isSpeakingRef = useRef(false);
 
     // Keep ref in sync with state to avoid stale closures in callbacks
     useEffect(() => {
         callStateRef.current = callState;
-    }, [callState]);
+        isSpeakingRef.current = isSpeaking;
+    }, [callState, isSpeaking]);
 
     // Timer Effect - Independent of other states
     useEffect(() => {
@@ -127,12 +129,12 @@ export default function VoiceCallInterface() {
 
                 // CRITICAL: Always restart if connected and not speaking
                 // Use Ref to check checking state
-                if (callStateRef.current === 'connected' && !isSpeaking) {
+                if (callStateRef.current === 'connected' && !isSpeakingRef.current) {
                     console.log('Auto-restarting listener...');
                     setTimeout(() => {
                         try {
                             // Double check before starting
-                            if (callStateRef.current === 'connected') {
+                            if (callStateRef.current === 'connected' && !isSpeakingRef.current) {
                                 recognitionRef.current?.start();
                             }
                         } catch (e) {
@@ -147,25 +149,8 @@ export default function VoiceCallInterface() {
 
                 if (event.error === 'not-allowed') {
                     setError('Microphone access denied. Please allow microphone access.');
-                } else if (event.error === 'no-speech') {
-                    // Silence detected - just restart immediately
-                    if (callStateRef.current === 'connected' && !isSpeaking) {
-                        try {
-                            recognitionRef.current?.stop();
-                            setTimeout(() => {
-                                if (callStateRef.current === 'connected') recognitionRef.current?.start();
-                            }, 200);
-                        } catch (e) { }
-                    }
-                } else {
-                    if (callStateRef.current === 'connected' && !isSpeaking) {
-                        setTimeout(() => {
-                            try {
-                                if (callStateRef.current === 'connected') recognitionRef.current?.start();
-                            } catch (e) { }
-                        }, 1000);
-                    }
                 }
+                // Rely on onend to handle restarts for other errors
             };
         } else {
             setError('Speech recognition not supported in this browser. Please use Chrome or Edge.');
@@ -312,7 +297,7 @@ export default function VoiceCallInterface() {
         await initializeAudioVisualization();
 
         // Speak intro greeting when call starts
-        const greeting = 'Hello! This is HotelHub AI, your personal hotel booking assistant. How can I help you today?';
+        const greeting = 'Hello! This is your AI assistant. I\'m listening. How can I help you today?';
         setLastAIResponse(greeting);
         addToTranscript('ai', greeting);
         // setHasSpokenIntro(true);
@@ -418,6 +403,8 @@ export default function VoiceCallInterface() {
         // Stop listening while speaking to avoid AI hearing itself
         if (recognitionRef.current) {
             try {
+                // Determine we are speaking BEFORE stopping, so onend doesn't restart
+                isSpeakingRef.current = true;
                 recognitionRef.current.stop();
             } catch (e) { }
         }
@@ -561,7 +548,7 @@ export default function VoiceCallInterface() {
                 {(callState === 'idle' || callState === 'dialing') && (
                     <div className="dial-screen animate-fadeIn">
                         <div className="phone-display">
-                            <div className="display-label">HotelHub AI</div>
+                            <div className="display-label">AI Voice Assistant</div>
                             <div className="phone-number">
                                 {phoneNumber ? formatPhoneNumber(phoneNumber) : 'Tap to Call'}
                             </div>
@@ -615,7 +602,7 @@ export default function VoiceCallInterface() {
                             <div className="avatar-ring animate-pulse"></div>
                             <div className="avatar-icon">AI</div>
                         </div>
-                        <h2 className="calling-title">HotelHub AI</h2>
+                        <h2 className="calling-title">AI Assistant</h2>
                         <p className="calling-status">Connecting...</p>
                         <button className="end-call-button" onClick={handleEndCall}>
                             <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">

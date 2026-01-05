@@ -37,7 +37,7 @@ export default function Header({ onThemeToggle, isDark }: HeaderProps) {
                                 </linearGradient>
                             </defs>
                         </svg>
-                        <span className="logo-text">HotelHub AI</span>
+                        <span className="logo-text">MCP Agent</span>
                     </div>
                 </div>
 
