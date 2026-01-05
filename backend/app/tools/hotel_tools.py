@@ -164,7 +164,9 @@ class HotelTools:
         check_out: str,
         guests: int,
         email: Optional[str] = None,
-        phone: Optional[str] = None
+        phone: Optional[str] = None,
+        special_requests: Optional[List[str]] = None,
+        bed_type: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Book a hotel room
@@ -177,6 +179,8 @@ class HotelTools:
             guests: Number of guests
             email: Guest email
             phone: Guest phone number
+            special_requests: List of special requests
+            bed_type: Preference for bed type
         
         Returns:
             Dictionary with booking confirmation
@@ -232,6 +236,8 @@ class HotelTools:
                 "price_per_night": room['price_per_night'],
                 "total_price": total_price,
                 "status": "confirmed",
+                "special_requests": special_requests or [],
+                "bed_type": bed_type,
                 "booking_date": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
             
