@@ -1,0 +1,19 @@
+# FastAPI and Server
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+python-multipart==0.0.17
+pydantic==2.10.3
+pydantic-settings==2.6.1
+websockets==14.1
+
+# CSV and Data Processing
+pandas==2.2.3
+numpy==2.2.1
+
+# LLM
+openai>=1.58.1
+
+# Utilities
+python-dotenv==1.0.1
+aiofiles==24.1.0
+httpx==0.28.1
