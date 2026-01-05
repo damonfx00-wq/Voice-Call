@@ -312,7 +312,7 @@ export default function VoiceCallInterface() {
         await initializeAudioVisualization();
 
         // Speak intro greeting when call starts
-        const greeting = 'Hello! This is your AI assistant. I\'m listening. How can I help you today?';
+        const greeting = 'Hello! This is HotelHub AI, your personal hotel booking assistant. How can I help you today?';
         setLastAIResponse(greeting);
         addToTranscript('ai', greeting);
         // setHasSpokenIntro(true);
@@ -561,7 +561,7 @@ export default function VoiceCallInterface() {
                 {(callState === 'idle' || callState === 'dialing') && (
                     <div className="dial-screen animate-fadeIn">
                         <div className="phone-display">
-                            <div className="display-label">AI Voice Assistant</div>
+                            <div className="display-label">HotelHub AI</div>
                             <div className="phone-number">
                                 {phoneNumber ? formatPhoneNumber(phoneNumber) : 'Tap to Call'}
                             </div>
@@ -615,7 +615,7 @@ export default function VoiceCallInterface() {
                             <div className="avatar-ring animate-pulse"></div>
                             <div className="avatar-icon">AI</div>
                         </div>
-                        <h2 className="calling-title">AI Assistant</h2>
+                        <h2 className="calling-title">HotelHub AI</h2>
                         <p className="calling-status">Connecting...</p>
                         <button className="end-call-button" onClick={handleEndCall}>
                             <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">

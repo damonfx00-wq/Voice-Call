@@ -14,8 +14,8 @@ load_dotenv()
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="Voice Call AI Assistant - Real-time",
-    description="Real-time voice communication with AI",
+    title="HotelHub AI - Hotel Booking Assistant",
+    description="AI-powered hotel booking and voice communication system",
     version="2.0.0"
 )
 
@@ -87,7 +87,7 @@ async def save_transcript(request: TranscriptSaveRequest):
         content += "-" * 40 + "\n\n"
         
         for item in request.transcript:
-            speaker = "You" if item.get("sender") == "user" else "AI Assistant"
+            speaker = "You" if item.get("sender") == "user" else "HotelHub AI"
             content += f"[{item.get('timestamp')}] {speaker}: {item.get('text')}\n\n"
         
         # Save to file
@@ -104,7 +104,7 @@ async def save_transcript(request: TranscriptSaveRequest):
 async def root():
     """Root endpoint"""
     return {
-        "message": "Voice Call AI Assistant API - Real-time",
+        "message": "HotelHub AI - Hotel Booking Assistant API",
         "version": "2.0.0",
         "status": "running",
         "features": ["websocket", "streaming", "real-time"]
@@ -219,7 +219,7 @@ async def websocket_voice_endpoint(websocket: WebSocket):
         # Send welcome message
         await websocket.send_json({
             "type": "connected",
-            "message": "Connected to AI voice assistant",
+            "message": "Connected to HotelHub AI",
             "connection_id": connection_id
         })
         

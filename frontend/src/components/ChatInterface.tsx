@@ -6,7 +6,7 @@ export default function ChatInterface() {
     const [messages, setMessages] = useState<ChatMessage[]>([
         {
             role: 'assistant',
-            content: 'Hello! I\'m your MCP Agent. I can help you with CSV files, search through documents, and answer questions. What would you like to do?',
+            content: 'Hello! I\'m HotelHub AI, your personal hotel booking assistant. I can help you search for hotels, make reservations, manage bookings, and answer any questions about your stay. What would you like to do?',
             timestamp: new Date().toISOString(),
         },
     ]);
@@ -83,10 +83,10 @@ export default function ChatInterface() {
     };
 
     const examplePrompts = [
-        'Show me all employees in the Engineering department',
-        'What are the company values?',
-        'List all CSV files',
-        'How many employees are in each department?',
+        'Search for hotels in New York',
+        'Show me available rooms for tonight',
+        'Book a deluxe room for 2 nights',
+        'What are my current bookings?',
     ];
 
     const handleExampleClick = (prompt: string) => {
