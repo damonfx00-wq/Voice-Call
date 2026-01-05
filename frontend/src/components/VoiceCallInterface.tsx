@@ -15,8 +15,8 @@ export default function VoiceCallInterface() {
     const [phoneNumber, setPhoneNumber] = useState('');
     const [isListening, setIsListening] = useState(false);
     const [isSpeaking, setIsSpeaking] = useState(false);
-    const [currentTranscript, setCurrentTranscript] = useState('');
-    const [lastUserSpeech, setLastUserSpeech] = useState('');
+    // const [currentTranscript, setCurrentTranscript] = useState('');
+    // const [lastUserSpeech, setLastUserSpeech] = useState('');
     const [lastAIResponse, setLastAIResponse] = useState('');
     const [callDuration, setCallDuration] = useState(0);
     const [audioLevel, setAudioLevel] = useState(0);
@@ -27,7 +27,7 @@ export default function VoiceCallInterface() {
 
     // Session management state
     const [sessionId, setSessionId] = useState<string | null>(null);
-    const [hasSpokenIntro, setHasSpokenIntro] = useState(false);
+    // const [hasSpokenIntro, setHasSpokenIntro] = useState(false);
 
     const recognitionRef = useRef<any>(null);
     const synthesisRef = useRef<SpeechSynthesis | null>(null);
@@ -88,7 +88,7 @@ export default function VoiceCallInterface() {
                 }
 
                 // Show interim results
-                setCurrentTranscript(interimTranscript || finalTranscript);
+                // setCurrentTranscript(interimTranscript || finalTranscript);
 
                 // Wait for complete sentence before processing
                 if (finalTranscript && !isSpeaking) {
@@ -301,7 +301,7 @@ export default function VoiceCallInterface() {
         const greeting = 'Hello! This is your AI assistant. I\'m listening. How can I help you today?';
         setLastAIResponse(greeting);
         addToTranscript('ai', greeting);
-        setHasSpokenIntro(true);
+        // setHasSpokenIntro(true);
 
         // Speak greeting then start listening
         speakText(greeting);
@@ -350,16 +350,16 @@ export default function VoiceCallInterface() {
             lowerText.includes('say it again') ||
             lowerText.includes('pardon')) && lastAIResponse) {
 
-            setLastUserSpeech(text);
-            setCurrentTranscript('');
+            // setLastUserSpeech(text);
+            // setCurrentTranscript('');
             stopListening();
             speakText(lastAIResponse);
             addToTranscript('ai', lastAIResponse); // Log repeat as well
             return;
         }
 
-        setLastUserSpeech(text);
-        setCurrentTranscript('');
+        // setLastUserSpeech(text);
+        // setCurrentTranscript('');
         stopListening();
 
         try {
@@ -479,12 +479,13 @@ export default function VoiceCallInterface() {
             setCallState('idle');
             setPhoneNumber('');
             setCallDuration(0);
-            setCurrentTranscript('');
-            setLastUserSpeech('');
+            setCallDuration(0);
+            // setCurrentTranscript('');
+            // setLastUserSpeech('');
             setLastAIResponse('');
             setError(null);
             setTranscript([]);
-            setHasSpokenIntro(false);
+            // setHasSpokenIntro(false);
             // Note: We keep sessionId to continue conversation in next call
         }, 3000);
     };

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { apiService, ChatMessage } from '../services/api';
+import { apiService, type ChatMessage } from '../services/api';
 import './ChatInterface.css';
 
 export default function ChatInterface() {
