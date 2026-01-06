@@ -132,14 +132,14 @@ export default function VoiceCallInterface() {
                         clearTimeout(sentenceTimeoutRef.current);
                     }
 
-                    // Wait 1.5 seconds to ensure user has finished speaking
-                    // This allows for natural pauses within a sentence
+                    // Wait 800ms to ensure user has finished speaking
+                    // Reduced for faster, more responsive conversation
                     sentenceTimeoutRef.current = window.setTimeout(() => {
                         // Check ref to ensure we're still connected and not speaking
                         if (!isSpeaking && callStateRef.current === 'connected') {
                             handleVoiceInput(finalTranscript);
                         }
-                    }, 1500);
+                    }, 800);
                 }
             };
 
@@ -370,7 +370,7 @@ export default function VoiceCallInterface() {
         // Initialization handled in handleCall now
 
         // Speak intro greeting when call starts
-        const greeting = 'Hello! This is your AI assistant. I\'m listening. How can I help you today?';
+        const greeting = 'Hello! This is ABC Hotel. How can I help you today?';
         setLastAIResponse(greeting);
         addToTranscript('ai', greeting);
 

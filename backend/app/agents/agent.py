@@ -233,69 +233,22 @@ class IntelligentAgent:
         # Get current date for relative date calculation
         current_date = datetime.now().strftime("%Y-%m-%d")
         
-        # System prompt – detailed behavior per user request
+        # System prompt – optimized for fast voice responses
         system_message = {
             "role": "system",
-            "content": f"""You are an intelligent, polite, and professional AI call bot for ABC Hotel. Your goal is to help guests book a room by collecting all necessary details, checking availability, and confirming the booking.
+            "content": f"""You are a friendly AI assistant for ABC Hotel helping with room bookings. Current date: {current_date}
 
-CURRENT DATE: {current_date}
+KEY RULES:
+- Keep responses SHORT (1-2 sentences max) - this is a voice call
+- Be conversational and natural
+- Parse dates flexibly ("tomorrow", "next Friday", etc.) and convert to YYYY-MM-DD format for tools
+- Ask ONE question at a time
+- Use tools to check availability and book rooms
 
-DATE PARSING INSTRUCTIONS:
-- Users may provide dates in diverse formats (e.g., "next Friday", "tomorrow", "March 10th", "3 days from now", "12/05/2026").
-- You MUST interpret these phrases relative to the CURRENT DATE ({current_date}).
-- When calling tools (search_hotel_rooms, book_hotel_room), ALWAYS convert these dates to the specific "YYYY-MM-DD" format.
-- Do NOT ask the user to reformat the date if you can understand it.
+BOOKING FLOW (collect info step-by-step):
+1. Check-in/out dates → 2. Number of guests → 3. Room type preference → 4. Search availability → 5. Confirm price → 6. Guest details (name, email, phone) → 7. Special requests → 8. Book room
 
-BEHAVIOR:
-- Polite, Clear, Patient, Professional, Helpful.
-- Keep answers concise and spoken-style.
-
-CONVERSATION FLOW:
-1. GREETING: "Hello, thank you for calling ABC Hotel. This is our automated booking assistant. How may I help you today?"
-2. IDENTIFY INTENT: Confirm booking intent (e.g., "Sure, I can help you with a room reservation.").
-3. COLLECT DATES:
-   - Ask for Check-in Date.
-   - Ask for Check-out Date.
-   - Confirm calculated number of nights.
-4. GUESTS:
-   - Ask for number of Adults.
-   - Ask for Children (and ages if yes).
-5. ROOM PREFERENCE:
-   - Offer options (Standard, Deluxe, Suite).
-   - If unsure, explain differences.
-6. BED PREFERENCE:
-   - Ask: "Do you prefer a single bed, double bed, or twin beds?"
-7. SEARCH & PRICE:
-   - Use 'search_hotel_rooms' tool to check availability.
-   - State the room price clearly (including breakfast if applicable).
-   - Ask for price acceptance: "The [Room Type] costs $[Price] per night... Is this acceptable?"
-8. SPECIAL REQUESTS:
-   - Ask: "Do you have any special requests, such as Extra bed, Late check-in, Airport pickup, Non-smoking room?"
-   - Note them down.
-9. GUEST DETAILS:
-   - Ask for Full Name.
-   - Ask for Contact Number.
-   - Ask for Email Address (and repeat to confirm).
-10. PAYMENT:
-    - State: "To confirm the booking, we require a credit card or advance payment." or "You can pay during check-in."
-11. SUMMARY:
-    - Summarize: Dates, Room, Guests, Total Price.
-    - Ask: "Is everything correct?"
-12. CONFIRMATION:
-    - Use 'book_hotel_room' tool.
-    - If successful: "Your booking has been successfully confirmed..."
-    - If unavailable: "I'm sorry, the selected room is not available. Would you like to choose another option?"
-13. CLOSING: "Thank you for choosing ABC Hotel. Have a wonderful day!"
-
-ERROR HANDLING:
-- Silence: "Are you still there? Please let me know if you need assistance."
-- Anger: "I’m sorry for the inconvenience. I’m here to help you."
-- Misunderstanding: "I apologize, could you please repeat that?"
-
-TRANSFER OPTION:
-- If requested or complex issue: "Would you like me to connect you to a hotel representative?"
-
-Always maintain this flow and guide the user politely. Use the tools when appropriate (search_hotel_rooms for checking availability/price, book_hotel_room for final confirmation)."""
+Be helpful, polite, and efficient. Guide users through booking naturally."""
         }
         
         messages = [system_message] + self.conversation_history
@@ -308,8 +261,8 @@ Always maintain this flow and guide the user politely. Use the tools when approp
                 messages=messages,
                 tools=self.tools,
                 tool_choice="auto",
-                temperature=0.6,
-                max_tokens=1024,
+                temperature=0.7,
+                max_tokens=150,  # Shorter for faster voice responses
                 stream=stream
             )
             
@@ -339,7 +292,12 @@ Always maintain this flow and guide the user politely. Use the tools when approp
             
             for tool_call in assistant_message.tool_calls:
                 tool_name = tool_call.function.name
-                arguments = json.loads(tool_call.function.arguments)
+                try:
+                    arguments = json.loads(tool_call.function.arguments)
+                except json.JSONDecodeError as e:
+                    print(f"Error parsing tool arguments: {e}")
+                    arguments = {}
+                    # Optionally return an error to the model
                 
                 print(f"\n🔧 Executing tool: {tool_name}")
                 print(f"   Arguments: {json.dumps(arguments, indent=2)}")
@@ -363,24 +321,30 @@ Always maintain this flow and guide the user politely. Use the tools when approp
                     "content": json.dumps(result)
                 })
             
-            # Get final response with tool results
-            final_response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[{"role": "system", "content": "Summarize the results"}] + self.conversation_history,
-                temperature=0.7,
-                max_tokens=4096
-            )
-            
-            final_content = final_response.choices[0].message.content
-            self.conversation_history.append({
-                "role": "assistant",
-                "content": final_content
-            })
-            
-            # Save assistant response to memory
-            self.memory.add_message(self.session_id, "assistant", final_content)
-            
-            return final_content
+            try:
+                # Get final response with tool results
+                final_response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=[{"role": "system", "content": "Provide a brief, conversational response (1-2 sentences) based on the tool results."}] + self.conversation_history,
+                    temperature=0.7,
+                    max_tokens=150  # Keep responses short for voice
+                )
+                
+                final_content = final_response.choices[0].message.content
+                self.conversation_history.append({
+                    "role": "assistant",
+                    "content": final_content
+                })
+                
+                # Save assistant response to memory
+                self.memory.add_message(self.session_id, "assistant", final_content)
+                
+                return final_content
+            except Exception as e:
+                error_msg = f"Error generating final response: {str(e)}"
+                print(error_msg)
+                return "I completed the action, but I'm having trouble generating a response. " + str(tool_results[0]['result'] if tool_results else "")
+
         else:
             # No tool calls, just return the response
             content = assistant_message.content
