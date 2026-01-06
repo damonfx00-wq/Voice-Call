@@ -37,9 +37,30 @@ export default function VoiceCallInterface() {
     const micStreamRef = useRef<MediaStream | null>(null);
     const animationFrameRef = useRef<number | null>(null);
     const sentenceTimeoutRef = useRef<number | null>(null);
-
     const callStateRef = useRef<CallState>('idle');
     const isSpeakingRef = useRef(false);
+    const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+    const silenceTimerRef = useRef<number | null>(null);
+    const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+
+    // Update available voices when they change (critical for Chrome/Windows)
+    useEffect(() => {
+        const loadVoices = () => {
+            const voices = window.speechSynthesis.getVoices();
+            if (voices.length > 0) {
+                setAvailableVoices(voices);
+            }
+        };
+
+        loadVoices();
+
+        // Chrome loads voices asynchronously
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+
+        return () => {
+            window.speechSynthesis.onvoiceschanged = null;
+        };
+    }, []);
 
     // Keep ref in sync with state to avoid stale closures in callbacks
     useEffect(() => {
@@ -94,6 +115,11 @@ export default function VoiceCallInterface() {
                     } else {
                         interimTranscript += transcript;
                     }
+                }
+
+                // User is speaking, so reset the silence timer
+                if (interimTranscript || finalTranscript) {
+                    startSilenceTimer();
                 }
 
                 // Show interim results
@@ -205,6 +231,9 @@ export default function VoiceCallInterface() {
     };
 
     const initializeAudioVisualization = async () => {
+        // Prevent duplicate initialization
+        if (micStreamRef.current) return;
+
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
                 audio: {
@@ -226,6 +255,7 @@ export default function VoiceCallInterface() {
         } catch (error) {
             console.error('Error accessing microphone:', error);
             setError('Could not access microphone. Please check permissions.');
+            throw error; // Re-throw to handle in caller
         }
     };
 
@@ -246,6 +276,39 @@ export default function VoiceCallInterface() {
 
         animate();
     };
+
+    // Silence detection
+    const startSilenceTimer = () => {
+        // Clear existing timer
+        if (silenceTimerRef.current) {
+            clearTimeout(silenceTimerRef.current);
+        }
+
+        // Only start timer if connected and listening
+        if (callStateRef.current === 'connected' && !isSpeakingRef.current) {
+            silenceTimerRef.current = window.setTimeout(() => {
+                console.log('Silence detected, prompting user...');
+                speakText("Are you still there? How may I help you?");
+            }, 10000); // 10 seconds silence timeout
+        }
+    };
+
+    const stopSilenceTimer = () => {
+        if (silenceTimerRef.current) {
+            clearTimeout(silenceTimerRef.current);
+            silenceTimerRef.current = null;
+        }
+    };
+
+    // Manage silence timer based on listening state
+    useEffect(() => {
+        if (isListening) {
+            startSilenceTimer();
+        } else {
+            stopSilenceTimer();
+        }
+        return () => stopSilenceTimer();
+    }, [isListening]);
 
     const handleDialPad = (digit: string) => {
         if (phoneNumber.length < 10) {
@@ -279,28 +342,37 @@ export default function VoiceCallInterface() {
 
     const handleCall = async () => {
         setError(null);
-        setCallState('dialing');
         setTranscript([]); // Reset transcript
 
-        setTimeout(() => {
-            setCallState('calling');
-        }, 1000);
+        try {
+            // Initialize audio immediately to capture user gesture
+            await initializeAudioVisualization();
 
-        setTimeout(() => {
-            setCallState('connected');
-            startCall();
-        }, 3000);
+            setCallState('dialing');
+
+            setTimeout(() => {
+                setCallState('calling');
+            }, 1000);
+
+            setTimeout(() => {
+                setCallState('connected');
+                // CRITICAL: Manually update ref to ensure immediate access in startCall/speakText
+                callStateRef.current = 'connected';
+                startCall();
+            }, 3000);
+        } catch (e) {
+            console.log("Call initialization failed", e);
+            // Error already set in initializeAudioVisualization
+        }
     };
 
     const startCall = async () => {
-        // Timer is handled by useEffect now
-        await initializeAudioVisualization();
+        // Initialization handled in handleCall now
 
         // Speak intro greeting when call starts
         const greeting = 'Hello! This is your AI assistant. I\'m listening. How can I help you today?';
         setLastAIResponse(greeting);
         addToTranscript('ai', greeting);
-        // setHasSpokenIntro(true);
 
         // Speak greeting then start listening
         speakText(greeting);
@@ -400,6 +472,11 @@ export default function VoiceCallInterface() {
         // Guard clause: Don't speak if call is not connected
         if (!synthesisRef.current || callStateRef.current !== 'connected') return;
 
+        // Ensure synthesis is active (fixes Chrome suspension issues)
+        if (synthesisRef.current.paused) {
+            try { synthesisRef.current.resume(); } catch (e) { }
+        }
+
         // Stop listening while speaking to avoid AI hearing itself
         if (recognitionRef.current) {
             try {
@@ -419,10 +496,23 @@ export default function VoiceCallInterface() {
         utterance.volume = 1.0;
         utterance.lang = 'en-US';
 
-        // Simple voice selection
-        const voices = synthesisRef.current.getVoices();
-        const voice = voices.find(v => v.lang.startsWith('en')) || voices[0];
+        // Robust voice selection
+        let currentVoices = availableVoices;
+        if (currentVoices.length === 0) {
+            currentVoices = window.speechSynthesis.getVoices();
+            if (currentVoices.length > 0) setAvailableVoices(currentVoices);
+        }
+
+        const voice = currentVoices.find(v => v.name === 'Google US English') ||
+            currentVoices.find(v => v.name === 'Microsoft Zira - English (United States)') ||
+            currentVoices.find(v => v.lang === 'en-US') ||
+            currentVoices.find(v => v.lang.startsWith('en')) ||
+            currentVoices[0];
+
         if (voice) utterance.voice = voice;
+
+        // CRITICAL: Store utterance in ref to prevent garbage collection which stops speech
+        utteranceRef.current = utterance;
 
         utterance.onend = () => {
             console.log('TTS Finished');
@@ -447,10 +537,16 @@ export default function VoiceCallInterface() {
             }
         };
 
-        // Double check before actually speaking
-        if (callStateRef.current === 'connected') {
-            synthesisRef.current.speak(utterance);
-        }
+        // Double check before actually speaking with a small delay for cancel to propagate
+        setTimeout(() => {
+            if (callStateRef.current === 'connected') {
+                try {
+                    synthesisRef.current?.speak(utterance);
+                } catch (e) {
+                    console.error("Speak failed:", e);
+                }
+            }
+        }, 50);
     };
 
     const saveTranscript = async () => {
