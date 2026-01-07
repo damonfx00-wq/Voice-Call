@@ -4,109 +4,127 @@ import os
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 import uuid
+from sqlalchemy.orm import Session
+from app.db.database import SessionLocal
+from app.models.models import Conversation, Message, User, Booking
 
 
 class ConversationMemory:
-    """Manages conversation history with persistence"""
+    """Manages conversation history with database persistence"""
     
-    def __init__(self, memory_dir: str = "./data/conversations"):
+    def __init__(self, memory_dir: str = None):
         """
         Initialize conversation memory
-        
-        Args:
-            memory_dir: Directory to store conversation files
+        memory_dir is kept for compatibility but not used
         """
-        self.memory_dir = memory_dir
-        os.makedirs(memory_dir, exist_ok=True)
+        pass
         
+    def get_db(self) -> Session:
+        return SessionLocal()
+
     def create_session(self, user_id: Optional[str] = None) -> str:
         """
         Create a new conversation session
         
         Args:
-            user_id: Optional user identifier
+            user_id: Optional user identifier (Phone Number)
             
         Returns:
             session_id: Unique session identifier
         """
         session_id = str(uuid.uuid4())
-        session_data = {
-            "session_id": session_id,
-            "user_id": user_id,
-            "created_at": datetime.now().isoformat(),
-            "updated_at": datetime.now().isoformat(),
-            "conversation_history": [],
-            "metadata": {}
-        }
-        
-        self._save_session(session_id, session_data)
-        return session_id
+        db = self.get_db()
+        try:
+            db_user_id = None
+            if user_id:
+                # user_id is treated as phone_number
+                user = db.query(User).filter(User.phone_number == user_id).first()
+                if not user:
+                    user = User(phone_number=user_id)
+                    db.add(user)
+                    db.commit()
+                    db.refresh(user)
+                db_user_id = user.id
+
+            new_session = Conversation(
+                session_id=session_id,
+                user_id=db_user_id,
+                metadata_json={}
+            )
+            db.add(new_session)
+            db.commit()
+            return session_id
+        finally:
+            db.close()
     
     def get_session(self, session_id: str) -> Optional[Dict[str, Any]]:
         """
         Retrieve a conversation session
-        
-        Args:
-            session_id: Session identifier
-            
-        Returns:
-            Session data or None if not found
         """
-        filepath = self._get_session_filepath(session_id)
-        if not os.path.exists(filepath):
-            return None
-        
+        db = self.get_db()
         try:
-            with open(filepath, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except Exception as e:
-            print(f"Error loading session {session_id}: {e}")
-            return None
+            conversation = db.query(Conversation).filter(Conversation.session_id == session_id).first()
+            if not conversation:
+                return None
+            
+            # Format session data to match previous dictionary structure
+            history = []
+            for msg in conversation.messages:
+                history.append({
+                    "role": msg.role,
+                    "content": msg.content,
+                    "timestamp": msg.timestamp.isoformat() if msg.timestamp else None
+                })
+            
+            user_phone = None
+            if conversation.user:
+                user_phone = conversation.user.phone_number
+
+            return {
+                "session_id": conversation.session_id,
+                "user_id": user_phone,
+                "created_at": conversation.created_at.isoformat() if conversation.created_at else None,
+                "updated_at": conversation.updated_at.isoformat() if conversation.updated_at else None,
+                "conversation_history": history,
+                "metadata": conversation.metadata_json or {}
+            }
+        finally:
+            db.close()
     
     def add_message(self, session_id: str, role: str, content: str, 
                    metadata: Optional[Dict[str, Any]] = None) -> bool:
         """
         Add a message to the conversation history
-        
-        Args:
-            session_id: Session identifier
-            role: Message role (user, assistant, system)
-            content: Message content
-            metadata: Optional metadata for the message
-            
-        Returns:
-            Success status
         """
-        session_data = self.get_session(session_id)
-        if not session_data:
+        db = self.get_db()
+        try:
+            conversation = db.query(Conversation).filter(Conversation.session_id == session_id).first()
+            if not conversation:
+                return False
+            
+            new_message = Message(
+                conversation_id=conversation.id,
+                role=role,
+                content=content
+            )
+            db.add(new_message)
+            
+            # Update conversation timestamp
+            conversation.updated_at = func.now()
+            
+            db.commit()
+            return True
+        except Exception as e:
+            print(f"Error adding message: {e}")
+            db.rollback()
             return False
-        
-        message = {
-            "role": role,
-            "content": content,
-            "timestamp": datetime.now().isoformat()
-        }
-        
-        if metadata:
-            message["metadata"] = metadata
-        
-        session_data["conversation_history"].append(message)
-        session_data["updated_at"] = datetime.now().isoformat()
-        
-        self._save_session(session_id, session_data)
-        return True
+        finally:
+            db.close()
     
     def get_conversation_history(self, session_id: str, 
                                 limit: Optional[int] = None) -> List[Dict[str, Any]]:
         """
         Get conversation history for a session
-        
-        Args:
-            session_id: Session identifier
-            limit: Optional limit on number of messages to return (most recent)
-            
-        Returns:
-            List of messages
         """
         session_data = self.get_session(session_id)
         if not session_data:
@@ -123,13 +141,6 @@ class ConversationMemory:
                             limit: Optional[int] = None) -> List[Dict[str, str]]:
         """
         Get conversation history formatted for LLM API
-        
-        Args:
-            session_id: Session identifier
-            limit: Optional limit on number of messages
-            
-        Returns:
-            List of messages in LLM format (role, content)
         """
         history = self.get_conversation_history(session_id, limit)
         return [
@@ -140,111 +151,90 @@ class ConversationMemory:
     def update_metadata(self, session_id: str, metadata: Dict[str, Any]) -> bool:
         """
         Update session metadata
-        
-        Args:
-            session_id: Session identifier
-            metadata: Metadata to update
-            
-        Returns:
-            Success status
         """
-        session_data = self.get_session(session_id)
-        if not session_data:
-            return False
-        
-        session_data["metadata"].update(metadata)
-        session_data["updated_at"] = datetime.now().isoformat()
-        
-        self._save_session(session_id, session_data)
-        return True
+        db = self.get_db()
+        try:
+            conversation = db.query(Conversation).filter(Conversation.session_id == session_id).first()
+            if not conversation:
+                return False
+            
+            current_metadata = conversation.metadata_json or {}
+            current_metadata.update(metadata)
+            conversation.metadata_json = current_metadata
+            
+            db.commit()
+            return True
+        finally:
+            db.close()
     
     def list_sessions(self, user_id: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         List all conversation sessions
-        
-        Args:
-            user_id: Optional filter by user_id
-            
-        Returns:
-            List of session summaries
+        user_id is treated as phone_number
         """
-        sessions = []
-        
-        for filename in os.listdir(self.memory_dir):
-            if filename.endswith('.json'):
-                session_id = filename[:-5]  # Remove .json extension
-                session_data = self.get_session(session_id)
-                
-                if session_data:
-                    # Filter by user_id if provided
-                    if user_id and session_data.get("user_id") != user_id:
-                        continue
-                    
-                    # Create summary
-                    summary = {
-                        "session_id": session_data["session_id"],
-                        "user_id": session_data.get("user_id"),
-                        "created_at": session_data["created_at"],
-                        "updated_at": session_data["updated_at"],
-                        "message_count": len(session_data.get("conversation_history", [])),
-                        "metadata": session_data.get("metadata", {})
-                    }
-                    sessions.append(summary)
-        
-        # Sort by updated_at (most recent first)
-        sessions.sort(key=lambda x: x["updated_at"], reverse=True)
-        return sessions
+        db = self.get_db()
+        try:
+            query = db.query(Conversation)
+            if user_id:
+                query = query.join(User).filter(User.phone_number == user_id)
+            
+            conversations = query.order_by(Conversation.updated_at.desc()).all()
+            
+            sessions = []
+            for conv in conversations:
+                user_phone = conv.user.phone_number if conv.user else None
+                sessions.append({
+                    "session_id": conv.session_id,
+                    "user_id": user_phone,
+                    "created_at": conv.created_at.isoformat() if conv.created_at else None,
+                    "updated_at": conv.updated_at.isoformat() if conv.updated_at else None,
+                    "message_count": len(conv.messages),
+                    "metadata": conv.metadata_json or {}
+                })
+            return sessions
+        finally:
+            db.close()
     
     def delete_session(self, session_id: str) -> bool:
         """
         Delete a conversation session
-        
-        Args:
-            session_id: Session identifier
-            
-        Returns:
-            Success status
         """
-        filepath = self._get_session_filepath(session_id)
-        if os.path.exists(filepath):
-            try:
-                os.remove(filepath)
-                return True
-            except Exception as e:
-                print(f"Error deleting session {session_id}: {e}")
+        db = self.get_db()
+        try:
+            conversation = db.query(Conversation).filter(Conversation.session_id == session_id).first()
+            if not conversation:
                 return False
-        return False
+            
+            db.delete(conversation)
+            db.commit()
+            return True
+        finally:
+            db.close()
     
     def clear_history(self, session_id: str) -> bool:
         """
         Clear conversation history but keep session
-        
-        Args:
-            session_id: Session identifier
-            
-        Returns:
-            Success status
         """
-        session_data = self.get_session(session_id)
-        if not session_data:
-            return False
-        
-        session_data["conversation_history"] = []
-        session_data["updated_at"] = datetime.now().isoformat()
-        
-        self._save_session(session_id, session_data)
-        return True
-    
-    def _get_session_filepath(self, session_id: str) -> str:
-        """Get filepath for a session"""
-        return os.path.join(self.memory_dir, f"{session_id}.json")
-    
-    def _save_session(self, session_id: str, session_data: Dict[str, Any]) -> None:
-        """Save session data to file"""
-        filepath = self._get_session_filepath(session_id)
+        db = self.get_db()
         try:
-            with open(filepath, 'w', encoding='utf-8') as f:
-                json.dump(session_data, f, indent=2, ensure_ascii=False)
-        except Exception as e:
-            print(f"Error saving session {session_id}: {e}")
-            raise
+            conversation = db.query(Conversation).filter(Conversation.session_id == session_id).first()
+            if not conversation:
+                return False
+            
+            # Delete all messages
+            db.query(Message).filter(Message.conversation_id == conversation.id).delete()
+            db.commit()
+            return True
+        finally:
+            db.close()
+            
+    # Helper to access DB if needed directly
+    def get_user_by_phone(self, phone_number: str) -> Optional[User]:
+        db = self.get_db()
+        try:
+            return db.query(User).filter(User.phone_number == phone_number).first()
+        finally:
+            db.close()
+
+from sqlalchemy import func
+

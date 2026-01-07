@@ -143,6 +143,10 @@ async def chat(request: ChatRequest):
         )
         
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"❌ Chat API Error: {str(e)}")
+        print(f"📋 Traceback:\n{error_details}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -196,6 +200,23 @@ async def delete_session(session_id: str):
         return {"success": True, "message": "Session deleted"}
     except HTTPException:
         raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/bookings")
+async def get_all_bookings(status: Optional[str] = None):
+    """
+    Get all hotel bookings for admin dashboard
+    """
+    try:
+        from app.tools.hotel_tools import HotelTools
+        import os
+        
+        hotel_tools = HotelTools(data_dir=os.getenv("HOTEL_DATA_DIR", "./data"))
+        result = hotel_tools.list_all_bookings(status=status)
+        
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -307,7 +328,7 @@ async def process_user_message(connection_id: int, user_message: str, websocket:
         # Stream AI response
         full_response = ""
         stream = client.chat.completions.create(
-            model="openai/gpt-oss-120b",
+            model="meta/llama-3.1-8b-instruct",
             messages=messages,
             temperature=0.7,
             max_tokens=512,  # Shorter for faster responses

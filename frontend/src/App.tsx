@@ -1,6 +1,8 @@
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import Header from './components/Header';
 import VoiceCallInterface from './components/VoiceCallInterface';
+import AdminDashboard from './pages/AdminDashboard';
 import './App.css';
 
 function App() {
@@ -19,12 +21,28 @@ function App() {
   };
 
   return (
-    <div className="app">
-      <Header onThemeToggle={toggleTheme} isDark={isDark} />
-      <main className="main-content">
-        <VoiceCallInterface />
-      </main>
-    </div>
+    <Router>
+      <Routes>
+        {/* Admin Dashboard Route */}
+        <Route path="/admin" element={<AdminDashboard />} />
+
+        {/* Main Voice Call Interface */}
+        <Route
+          path="/"
+          element={
+            <div className="app">
+              <Header onThemeToggle={toggleTheme} isDark={isDark} />
+              <main className="main-content">
+                <VoiceCallInterface />
+              </main>
+            </div>
+          }
+        />
+
+        {/* Redirect any unknown routes to home */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Router>
   );
 }
 

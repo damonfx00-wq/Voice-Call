@@ -288,7 +288,7 @@ export default function VoiceCallInterface() {
         if (callStateRef.current === 'connected' && !isSpeakingRef.current) {
             silenceTimerRef.current = window.setTimeout(() => {
                 console.log('Silence detected, prompting user...');
-                speakText("Are you still there? How may I help you?");
+                speakText("Are you still there?");
             }, 10000); // 10 seconds silence timeout
         }
     };
@@ -341,6 +341,11 @@ export default function VoiceCallInterface() {
     };
 
     const handleCall = async () => {
+        if (!phoneNumber || phoneNumber.length < 10) {
+            setError('Please enter a valid 10-digit phone number.');
+            return;
+        }
+
         setError(null);
         setTranscript([]); // Reset transcript
 
@@ -440,7 +445,8 @@ export default function VoiceCallInterface() {
             // Send message with session ID for conversation continuity
             const response = await apiService.chat({
                 message: text,
-                session_id: sessionId || undefined
+                session_id: sessionId || undefined,
+                user_id: phoneNumber || undefined
             });
 
             // CRITICAL: Check if call is still connected after awaiting response
